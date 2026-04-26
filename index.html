@@ -537,18 +537,28 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  /* 科目入力の右に置く「一覧から選ぶ」ボタン（iPad の datalist 不安定対策） */
+  /* 科目選択ボタン（リストからのみ選ぶ専用UI） */
   .field { position: relative; }
-  .subj-pick-btn {
-    position: absolute; right: 4px; top: 28px;
-    background: var(--accent-soft);
-    color: var(--accent);
-    border: 1px solid var(--accent);
-    padding: 4px 10px;
-    border-radius: 4px; font-size: 12px;
-    cursor: pointer; font-family: inherit;
+  .subj-select-btn {
+    width: 100%; box-sizing: border-box;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 9px 12px; font-size: 14px;
+    color: var(--ink); font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 38px;
   }
-  .subj-pick-btn:hover { background: var(--accent); color: #fff; }
+  .subj-select-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .subj-select-btn:active { background: var(--accent-soft); }
+  .subj-select-btn .subj-arrow {
+    color: var(--accent); font-size: 12px; margin-left: 8px;
+  }
+  .subj-select-btn .subj-disp-empty {
+    color: var(--muted); font-style: italic;
+  }
   /* 科目選択モーダル */
   .subj-modal-bg {
     position: fixed; inset: 0;
@@ -608,10 +618,16 @@
   }
   .kbd-dismiss.show { display: inline-block; }
   /* iPad の date input は値が空のときプレースホルダーが見えないことがあるため、
-     横にヒントラベルを併置する。Macでは重複表示を避けるためJSで非表示にする。 */
-  .dateph-wrap { display: inline-flex; align-items: center; gap: 6px; }
+     ヒントラベルを入力欄の下に小さく重ねて表示する。Macでは no-hint クラスで非表示。 */
+  .dateph-wrap {
+    display: inline-flex; flex-direction: column;
+    align-items: stretch; gap: 1px;
+    position: relative;
+  }
+  .dateph-wrap > input[type="date"] { width: 100%; }
   .dateph-wrap > .dateph-label {
-    color: var(--muted); font-size: 12px;
+    color: var(--muted); font-size: 10px;
+    line-height: 1.2; padding: 0 2px;
     white-space: nowrap;
   }
   .dateph-wrap.has-value > .dateph-label { display: none; }
@@ -703,12 +719,19 @@
 
   /* Todo */
   .todo-add {
-    display: grid; grid-template-columns: 2fr 1fr 1fr auto;
-    gap: 8px; margin-bottom: 12px;
+    display: flex; flex-wrap: wrap; gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
   }
-  @media (max-width: 700px) {
-    .todo-add { grid-template-columns: 1fr 1fr; }
-    .todo-add button { grid-column: span 2; }
+  .todo-add > * { min-width: 0; box-sizing: border-box; }
+  .todo-add #todoTitle    { flex: 1 1 220px; }
+  .todo-add .dateph-wrap  { flex: 0 1 auto; }
+  .todo-add #todoCategory { flex: 1 1 130px; }
+  .todo-add .todo-color-pick { flex: 0 0 auto; }
+  .todo-add #todoAdd      { flex: 0 0 auto; }
+  /* iPad縦置きや狭い画面では追加ボタンを次行に配置する必要があれば自然に折り返す */
+  @media (max-width: 800px) {
+    .todo-add #todoTitle { flex: 1 1 100%; }
   }
   .todo-filters {
     display: flex; gap: 10px; margin-bottom: 12px;
@@ -746,6 +769,40 @@
     color: var(--muted); font-size: 16px; padding: 0 4px;
   }
   .todo-del:hover { color: var(--red); }
+  .todo-edit-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 14px; padding: 0 6px;
+    font-family: inherit;
+  }
+  .todo-edit-btn:hover { color: var(--accent); }
+  /* TODO インライン編集フォーム */
+  .todo-item.editing {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    padding: 12px;
+  }
+  .todo-edit-form { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .todo-edit-form .te-row {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .todo-edit-form .te-title {
+    width: 100%; padding: 7px 10px; font-size: 14px;
+    border: 1px solid var(--line); border-radius: 4px;
+    box-sizing: border-box;
+  }
+  .todo-edit-form .te-cat {
+    flex: 1 1 130px; padding: 6px 10px; font-size: 13px;
+    border: 1px solid var(--line); border-radius: 4px;
+    box-sizing: border-box;
+  }
+  .todo-edit-form .te-due {
+    padding: 5px 8px; font-size: 13px;
+    border: 1px solid var(--line); border-radius: 4px;
+  }
+  .todo-edit-form .te-buttons { justify-content: flex-end; }
+  .todo-edit-form .btn.small {
+    padding: 6px 14px; font-size: 13px;
+  }
 
   .settings-row { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
 
@@ -1113,8 +1170,11 @@
         <div class="form-row one">
           <div class="field">
             <label>科目</label>
-            <input id="recSubject" type="text" placeholder="例: 11英C" list="subjectList" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-            <button type="button" class="subj-pick-btn" id="recSubjectPickBtn" title="マスタから科目を選ぶ">▼ 一覧から選ぶ</button>
+            <button type="button" id="recSubjectBtn" class="subj-select-btn">
+              <span id="recSubjectDisp" class="subj-disp-empty">タップして科目を選ぶ</span>
+              <span class="subj-arrow">▼</span>
+            </button>
+            <input id="recSubject" type="hidden">
           </div>
         </div>
         <div class="form-row one">
@@ -1180,7 +1240,7 @@
       <h2>TODOリスト</h2>
       <form id="todoForm" class="todo-add" onsubmit="return false;">
         <input id="todoTitle" type="text" placeholder="やることを入力" required>
-        <span class="dateph-wrap"><input id="todoDue" type="date" title="期限（任意）"><span class="dateph-label">期限を選択（任意）</span></span>
+        <span class="dateph-wrap"><input id="todoDue" type="date" title="期限（任意）"><span class="dateph-label">期限（任意）</span></span>
         <input id="todoCategory" type="text" placeholder="カテゴリ（任意）" list="todoCatList">
         <datalist id="todoCatList"></datalist>
         <span class="todo-color-pick" id="todoColorPick" title="文字色を選ぶ">
@@ -2664,6 +2724,7 @@ function gotoRecord(dateIso, p, _ignored, subject) {
     newRecord();
     setRecordDatePeriodDisp(dateIso, p);
     $('#recSubject').value = subject || '';
+    setRecSubjectDisplay(subject || '');
     refreshLastProgressHint();
     refreshSubjectMemo();
     toast(`${dateIso} ${p}限の記録を入力`);
@@ -2750,6 +2811,7 @@ function newRecord() {
   $('#formTitle').textContent = '新規授業記録';
   setRecordDatePeriodDisp('', '');
   $('#recSubject').value = '';
+  setRecSubjectDisplay('');
   $('#recProgress').value = '';
   $('#recNote').value = '';
   refreshLastProgressHint();
@@ -2763,6 +2825,7 @@ function loadRecord(id) {
   $('#formTitle').textContent = '授業記録を編集';
   setRecordDatePeriodDisp(r.date || '', r.period || '');
   $('#recSubject').value = r.subject || '';
+  setRecSubjectDisplay(r.subject || '');
   // 旧形式データの進度互換: 旧unit/contentがあればprogressに合流表示
   const progress = r.progress != null ? r.progress
     : [r.unit, r.content].filter(Boolean).join('\n');
@@ -2858,6 +2921,7 @@ $('#recDeletePeriod').addEventListener('click', () => {
   if (!confirm(`${date} ${p}限の授業コマを週間カレンダーから非表示にします。\n（時間割A/B自体は変更されません）`)) return;
   setSubjectOverride(date, p, '');
   $('#recSubject').value = '';
+  setRecSubjectDisplay('');
   refreshLastProgressHint();
   refreshSubjectMemo();
   toast('このコマを削除しました');
@@ -2869,6 +2933,7 @@ $('#recResetPeriod').addEventListener('click', () => {
   setSubjectOverride(date, p, null);
   const patSub = getPatternSubject(date, p);
   $('#recSubject').value = patSub;
+  setRecSubjectDisplay(patSub);
   refreshLastProgressHint();
   refreshSubjectMemo();
   toast('時間割どおりに戻しました');
@@ -2888,8 +2953,7 @@ $('#recDelete').addEventListener('click', () => {
   el.addEventListener('input', renderRecords);
   el.addEventListener('change', renderRecords);
 });
-$('#recSubject').addEventListener('input', () => { refreshLastProgressHint(); refreshSubjectMemo(); });
-$('#recSubject').addEventListener('change', () => { refreshLastProgressHint(); refreshSubjectMemo(); });
+/* recSubject は hidden 入力。値変更はモーダル選択経由で setRecSubjectDisplay と refresh が呼ばれる */
 
 /* 「この授業でやることメモ」: 入力即時に科目ごとに保存（debounce） */
 let _memoSaveTimer = null;
@@ -2911,6 +2975,8 @@ $('#recTodoMemo').addEventListener('input', () => {
 /* ========== TODO ========== */
 const TODO_COLORS = ['#222222','#e74c3c','#e67e22','#f1c40f','#27ae60','#3498db','#8e44ad'];
 let _todoNewColor = TODO_COLORS[0];
+/* 現在インライン編集中のTODO ID（nullなら編集中なし） */
+let _editingTodoId = null;
 
 function addTodo(e) {
   if (e) e.preventDefault();
@@ -3040,13 +3106,40 @@ function renderTodos() {
   empty.style.display = 'none';
   const today = todayStr();
   ul.innerHTML = list.map(t => {
+    const color = t.color || TODO_COLORS[0];
+    /* 編集モード */
+    if (t.id === _editingTodoId) {
+      return `
+        <li class="todo-item editing" data-id="${t.id}">
+          <div class="todo-edit-form" data-id="${t.id}">
+            <div class="te-row">
+              <input type="text" class="te-title" data-id="${t.id}" value="${escapeHtml(t.title)}" placeholder="やることを入力">
+            </div>
+            <div class="te-row te-row-meta">
+              <span class="dateph-wrap${t.due?' has-value':''}${_isIOSDevice?'':' no-hint'}" style="flex:0 1 auto;">
+                <input type="date" class="te-due" data-id="${t.id}" value="${escapeHtml(t.due||'')}">
+                <span class="dateph-label">期限（任意）</span>
+              </span>
+              <input type="text" class="te-cat" data-id="${t.id}" value="${escapeHtml(t.category||'')}" placeholder="カテゴリ（任意）" list="todoCatList">
+              <span class="todo-color-pick te-color" data-id="${t.id}" title="文字色">
+                <span class="todo-color-cur" style="background:${escapeHtml(color)};"></span>
+                <span class="todo-color-arrow">▼</span>
+              </span>
+            </div>
+            <div class="te-row te-buttons">
+              <button class="btn small te-save" data-id="${t.id}">保存</button>
+              <button class="btn secondary small te-cancel" data-id="${t.id}">キャンセル</button>
+            </div>
+          </div>
+        </li>`;
+    }
+    /* 通常表示モード */
     let dueCls = ''; let dueLabel = '';
     if (t.due) {
       if (!t.done && t.due < today) { dueCls = 'due-over'; dueLabel = `期限超過: ${t.due}`; }
       else if (!t.done && t.due === today) { dueCls = 'due-soon'; dueLabel = `今日締切`; }
       else dueLabel = `期限: ${t.due}`;
     }
-    const color = t.color || TODO_COLORS[0];
     return `
       <li class="todo-item ${t.done?'done':''}" data-id="${t.id}">
         <input type="checkbox" ${t.done?'checked':''} data-id="${t.id}">
@@ -3058,10 +3151,11 @@ function renderTodos() {
             <span class="${dueCls}">${escapeHtml(dueLabel)}</span>
           </div>
         </div>
+        <button class="todo-edit-btn" data-id="${t.id}" title="編集">✎</button>
         <button class="todo-del" data-id="${t.id}" title="削除">×</button>
       </li>`;
   }).join('');
-  /* 各TODOの文字色を変更するスウォッチ */
+  /* 各TODOの文字色を変更するスウォッチ（表示モード） */
   ul.querySelectorAll('.todo-color-mini').forEach(sw => {
     sw.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -3080,13 +3174,55 @@ function renderTodos() {
   ul.querySelectorAll('.todo-del').forEach(btn => {
     btn.addEventListener('click', () => deleteTodo(btn.dataset.id));
   });
-  ul.querySelectorAll('.todo-title').forEach(el => {
-    el.addEventListener('dblclick', () => {
-      const id = el.closest('.todo-item').dataset.id;
+  ul.querySelectorAll('.todo-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _editingTodoId = btn.dataset.id;
+      renderTodos();
+    });
+  });
+  /* 編集モードの操作 */
+  ul.querySelectorAll('.todo-edit-form').forEach(form => {
+    const id = form.dataset.id;
+    /* 編集中の色ピッカー */
+    const colorPick = form.querySelector('.te-color');
+    if (colorPick) {
+      colorPick.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const t = state.todos.find(x => x.id === id);
+        if (!t) return;
+        showColorPopover(colorPick, t.color || TODO_COLORS[0], (c) => {
+          t.color = c;
+          save(); renderTodos();
+        });
+      });
+    }
+    /* 期限のプレースホルダーラベル制御 */
+    const dueInp = form.querySelector('.te-due');
+    if (dueInp) {
+      dueInp.addEventListener('input', () => syncDatePh(dueInp));
+      dueInp.addEventListener('change', () => syncDatePh(dueInp));
+    }
+    /* 保存 */
+    form.querySelector('.te-save').addEventListener('click', () => {
       const t = state.todos.find(x => x.id === id);
       if (!t) return;
-      const v = prompt('TODOを編集', t.title);
-      if (v !== null && v.trim()) { t.title = v.trim(); save(); renderTodos(); }
+      const newTitle = form.querySelector('.te-title').value.trim();
+      if (!newTitle) { toast('タイトルを入力してください'); return; }
+      t.title = newTitle;
+      t.due = form.querySelector('.te-due').value || '';
+      t.category = form.querySelector('.te-cat').value.trim();
+      _editingTodoId = null;
+      save(); renderTodos(); refreshTodoCats();
+      toast('TODOを更新しました');
+    });
+    /* キャンセル */
+    form.querySelector('.te-cancel').addEventListener('click', () => {
+      _editingTodoId = null;
+      renderTodos();
+    });
+    /* Enterで保存 */
+    form.querySelector('.te-title').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); form.querySelector('.te-save').click(); }
     });
   });
 }
@@ -3381,39 +3517,51 @@ $('#btnReset').addEventListener('click', () => {
 
 /* ========== 科目選択モーダル ========== */
 let _subjModalTargetInput = null;
-function openSubjModal(targetInputId) {
-  _subjModalTargetInput = $('#' + targetInputId);
-  if (!_subjModalTargetInput) return;
-  /* 候補を集める：マスタ＋時間割セル＋既存記録 */
+
+/* 候補科目を集める（マスタ＋時間割セル＋既存記録） */
+function gatherAllSubjects() {
   const cellSubjects = [];
   ['A','B'].forEach(k => {
     const t = state.timetables[k];
-    if (!t) return;
-    Object.values(t).forEach(row => Object.values(row).forEach(s => {
-      if (s) cellSubjects.push(s);
-    }));
+    if (!t || !t.cells) return;
+    Object.values(t.cells).forEach(c => {
+      if (c && c.subject) cellSubjects.push(c.subject);
+    });
   });
-  const all = Array.from(new Set([
+  return Array.from(new Set([
     ...(state.masters.subjects || []),
     ...cellSubjects,
     ...state.records.map(r => r.subject).filter(Boolean)
   ])).sort((a,b) => a.localeCompare(b,'ja'));
+}
+
+function openSubjModal(targetInputId) {
+  _subjModalTargetInput = $('#' + targetInputId);
+  if (!_subjModalTargetInput) return;
+  const all = gatherAllSubjects();
   $('#subjModalSearch').value = '';
   renderSubjModalList(all);
   $('#subjModalBg').classList.add('show');
-  setTimeout(() => $('#subjModalSearch').focus(), 50);
+  /* iPad対応: フォーカス時の自動キーボード起動を避けるため focus() は呼ばない */
 }
 function renderSubjModalList(items) {
   const wrap = $('#subjModalList');
   if (!items || items.length === 0) {
-    wrap.innerHTML = '<div class="subj-empty">該当する科目がありません</div>';
+    wrap.innerHTML = '<div class="subj-empty">該当する科目がありません。設定タブの「科目マスタ」から科目を登録してください。</div>';
     return;
   }
   wrap.innerHTML = items.map(s => `<div class="subj-opt" data-v="${escapeHtml(s)}">${escapeHtml(s)}</div>`).join('');
   wrap.querySelectorAll('.subj-opt').forEach(el => {
     el.addEventListener('click', () => {
       if (_subjModalTargetInput) {
-        _subjModalTargetInput.value = el.dataset.v;
+        const v = el.dataset.v;
+        _subjModalTargetInput.value = v;
+        /* 表示用の display 要素にも反映 */
+        if (_subjModalTargetInput.id === 'recSubject') {
+          setRecSubjectDisplay(v);
+          refreshLastProgressHint();
+          refreshSubjectMemo();
+        }
         _subjModalTargetInput.dispatchEvent(new Event('input', {bubbles:true}));
         _subjModalTargetInput.dispatchEvent(new Event('change', {bubbles:true}));
       }
@@ -3425,55 +3573,62 @@ function closeSubjModal() {
   $('#subjModalBg').classList.remove('show');
   _subjModalTargetInput = null;
 }
+function setRecSubjectDisplay(v) {
+  const disp = $('#recSubjectDisp');
+  if (!disp) return;
+  if (v) {
+    disp.textContent = v;
+    disp.classList.remove('subj-disp-empty');
+  } else {
+    disp.textContent = 'タップして科目を選ぶ';
+    disp.classList.add('subj-disp-empty');
+  }
+}
 $('#subjModalClose').addEventListener('click', closeSubjModal);
 $('#subjModalBg').addEventListener('click', (e) => { if (e.target.id === 'subjModalBg') closeSubjModal(); });
 $('#subjModalSearch').addEventListener('input', (e) => {
   const q = (e.target.value || '').toLowerCase().trim();
-  const cellSubjects = [];
-  ['A','B'].forEach(k => {
-    const t = state.timetables[k];
-    if (!t) return;
-    Object.values(t).forEach(row => Object.values(row).forEach(s => { if (s) cellSubjects.push(s); }));
-  });
-  const all = Array.from(new Set([
-    ...(state.masters.subjects || []),
-    ...cellSubjects,
-    ...state.records.map(r => r.subject).filter(Boolean)
-  ])).sort((a,b) => a.localeCompare(b,'ja'));
+  const all = gatherAllSubjects();
   const filtered = q ? all.filter(s => s.toLowerCase().includes(q)) : all;
   renderSubjModalList(filtered);
 });
-const _recSubjPickBtn = $('#recSubjectPickBtn');
-if (_recSubjPickBtn) _recSubjPickBtn.addEventListener('click', () => openSubjModal('recSubject'));
+/* 科目選択ボタンをタップ → モーダル表示 */
+const _recSubjBtn = $('#recSubjectBtn');
+if (_recSubjBtn) _recSubjBtn.addEventListener('click', () => openSubjModal('recSubject'));
 
-/* ========== ソフトキーボード閉じるボタン ========== */
-function _shouldShowKbdDismiss(el) {
+/* ========== タップアウトでソフトキーボード解除（アプリ全体共通） ========== */
+function _isEditableField(el) {
   if (!el) return false;
   const tag = (el.tagName || '').toLowerCase();
   if (tag === 'textarea') return true;
   if (tag === 'input') {
     const t = (el.type || 'text').toLowerCase();
-    /* textに分類される系のみ対象。date/select等は端末側UIで完結 */
+    /* キーボードが上がる種別のみ対象（date等は端末ピッカーで完結） */
     return ['text','search','number','tel','url','email','password'].includes(t);
   }
+  if (el.isContentEditable) return true;
   return false;
 }
+/* document全体のタップを監視。入力欄以外をタップしたらアクティブ要素をblur */
+function _handleTapOut(e) {
+  const ae = document.activeElement;
+  if (!_isEditableField(ae)) return;          /* キーボードが出てない */
+  let t = e.target;
+  /* タップ先がアクティブ入力欄またはその子孫なら無視 */
+  if (t === ae || (ae.contains && ae.contains(t))) return;
+  /* タップ先が別の入力欄ならフォーカス移動なのでblurしない（自動で切り替わる） */
+  if (_isEditableField(t)) return;
+  /* それ以外（ボタン、ラベル、空白、本文など） → blurしてキーボードを閉じる */
+  if (ae.blur) ae.blur();
+}
+/* pointerdown は早く・確実に発火する（iOS Safari でも動く） */
+document.addEventListener('pointerdown', _handleTapOut, true);
+/* 古めのSafari互換のため touchstart も補助で */
+document.addEventListener('touchstart', _handleTapOut, {capture: true, passive: true});
+
+/* 旧フローティング「閉じる」ボタンは廃止（タップアウトで閉じる） */
 const _kbdBtn = $('#kbdDismissBtn');
-function _refreshKbdBtn() {
-  if (!_kbdBtn) return;
-  if (_shouldShowKbdDismiss(document.activeElement)) _kbdBtn.classList.add('show');
-  else _kbdBtn.classList.remove('show');
-}
-document.addEventListener('focusin', _refreshKbdBtn);
-document.addEventListener('focusout', () => setTimeout(_refreshKbdBtn, 100));
-if (_kbdBtn) {
-  _kbdBtn.addEventListener('mousedown', (e) => e.preventDefault());
-  _kbdBtn.addEventListener('touchstart', (e) => e.preventDefault(), {passive: false});
-  _kbdBtn.addEventListener('click', () => {
-    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    _kbdBtn.classList.remove('show');
-  });
-}
+if (_kbdBtn) _kbdBtn.style.display = 'none';
 
 /* ========== 初期化 ========== */
 renderTimetableEditor('A');
