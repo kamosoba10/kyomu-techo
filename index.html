@@ -634,9 +634,13 @@
     /* iOS Safari の date input がコンテンツに応じて勝手に広がるのを抑止 */
     -webkit-appearance: none;
     appearance: none;
-    padding: 7px 10px; font-size: 14px;
+    padding: 7px 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    height: 36px;             /* カテゴリ入力欄と同じ高さに揃える */
     border: 1px solid var(--line); border-radius: 4px;
     background: #fff; color: var(--ink); font-family: inherit;
+    display: inline-block;
   }
   .dateph-wrap > .dateph-label {
     position: absolute;
