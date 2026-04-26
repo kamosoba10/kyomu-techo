@@ -625,18 +625,17 @@
     display: block;
     position: relative;
     box-sizing: border-box;
-    overflow: hidden;
+    /* overflow: hidden を外す → date input の右ボーダーが切れない */
   }
   .dateph-wrap > input[type="date"] {
     width: 100%; max-width: 100%;
     box-sizing: border-box;
     min-width: 0;
-    /* iOS Safari は date input に独自の最小幅を持つことがあるため、明示的に上書き */
-    flex: 0 1 auto;
   }
   .dateph-wrap > .dateph-label {
     position: absolute;
-    left: 10px; right: 30px; top: 50%; transform: translateY(-50%);
+    left: 10px; top: 50%; transform: translateY(-50%);
+    max-width: calc(100% - 36px);   /* ラベル自身が枠内にとどまる */
     font-size: 13px; color: var(--muted);
     pointer-events: none;
     white-space: nowrap;
@@ -745,7 +744,7 @@
       gap: 12px;
     }
     .todo-add #todoTitle { grid-column: 1 / -1; }
-    .todo-add .dateph-wrap { grid-column: 1 / 2; overflow: hidden; }
+    .todo-add .dateph-wrap { grid-column: 1 / 2; }
     .todo-add #todoCategory { grid-column: 2 / 3; }
     .todo-add #todoColorPick { grid-column: 3 / 4; justify-self: center; }
     .todo-add #todoAdd { grid-column: 4 / 5; }
@@ -793,6 +792,24 @@
     font-family: inherit;
   }
   .todo-edit-btn:hover { color: var(--accent); }
+  /* ドラッグハンドル（手動順ソート時のみ表示） */
+  .todo-drag-handle {
+    cursor: grab;
+    color: var(--muted);
+    font-size: 18px; line-height: 1;
+    padding: 0 8px;
+    user-select: none;
+    touch-action: none;     /* iPadで指ドラッグ時にページがスクロールしないように */
+    -webkit-user-select: none;
+    align-self: center;
+  }
+  .todo-drag-handle:active { cursor: grabbing; color: var(--accent); }
+  .todo-item.dragging {
+    opacity: 0.7;
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+  }
   /* TODO インライン編集フォーム */
   .todo-item.editing {
     background: var(--accent-soft);
@@ -1274,6 +1291,7 @@
           <button class="chip-btn" data-filter="done">完了済み</button>
         </div>
         <select id="todoSort">
+          <option value="manual">手動順（ドラッグで並べ替え）</option>
           <option value="due">期限順</option>
           <option value="created-desc">追加の新しい順</option>
           <option value="created-asc">追加の古い順</option>
@@ -3100,6 +3118,68 @@ function refreshTodoCats() {
   $('#todoFilterCat').value = cur;
 }
 
+/* ========== todoのドラッグ並べ替え（マウス・タッチ両対応） ========== */
+function setupTodoDrag(ul) {
+  let dragging = null;
+  let activeHandle = null;
+  let placeholderHeight = 0;
+
+  ul.querySelectorAll('.todo-drag-handle').forEach(handle => {
+    handle.addEventListener('pointerdown', (ev) => {
+      ev.preventDefault();
+      const item = handle.closest('.todo-item');
+      if (!item) return;
+      dragging = item;
+      activeHandle = handle;
+      placeholderHeight = item.getBoundingClientRect().height;
+      item.classList.add('dragging');
+      try { handle.setPointerCapture(ev.pointerId); } catch (e) {}
+    });
+    handle.addEventListener('pointermove', (ev) => {
+      if (!dragging) return;
+      ev.preventDefault();
+      const others = Array.from(ul.querySelectorAll('.todo-item:not(.dragging)'));
+      let target = null;
+      for (const o of others) {
+        const r = o.getBoundingClientRect();
+        const mid = r.top + r.height / 2;
+        if (ev.clientY < mid) { target = o; break; }
+      }
+      if (target && target !== dragging.nextSibling) {
+        ul.insertBefore(dragging, target);
+      } else if (!target && dragging !== ul.lastElementChild) {
+        ul.appendChild(dragging);
+      }
+    });
+    const finish = () => {
+      if (!dragging) return;
+      dragging.classList.remove('dragging');
+      /* DOM上の表示順を state.todos に反映（表示中アイテムだけ位置を入れ替え、非表示は元位置を維持） */
+      const newVisibleOrder = Array.from(ul.querySelectorAll('.todo-item')).map(el => el.dataset.id);
+      const visibleSet = new Set(newVisibleOrder);
+      let i = 0;
+      const newTodos = state.todos.map(t => {
+        if (visibleSet.has(t.id)) {
+          const newId = newVisibleOrder[i++];
+          return state.todos.find(x => x.id === newId);
+        }
+        return t;
+      });
+      state.todos = newTodos;
+      save(); renderTodos();
+      dragging = null;
+      activeHandle = null;
+    };
+    handle.addEventListener('pointerup', finish);
+    handle.addEventListener('pointercancel', () => {
+      if (dragging) dragging.classList.remove('dragging');
+      dragging = null;
+      activeHandle = null;
+      renderTodos();
+    });
+  });
+}
+
 function renderTodos() {
   const filter = currentTodoFilter;
   const catFilter = $('#todoFilterCat').value;
@@ -3109,7 +3189,9 @@ function renderTodos() {
   else if (filter === 'done') list = list.filter(t => t.done);
   if (catFilter) list = list.filter(t => t.category === catFilter);
 
-  if (sort === 'due') {
+  if (sort === 'manual') {
+    /* 並び替えしない: state.todos の配列順を使う */
+  } else if (sort === 'due') {
     list.sort((a,b) => {
       if (a.done !== b.done) return a.done ? 1 : -1;
       const aD = a.due || '9999-99-99';
@@ -3170,8 +3252,12 @@ function renderTodos() {
       else if (!t.done && t.due === today) { dueCls = 'due-soon'; dueLabel = `今日締切`; }
       else dueLabel = `期限: ${t.due}`;
     }
+    const dragHandle = (sort === 'manual')
+      ? `<span class="todo-drag-handle" data-id="${t.id}" title="ドラッグで並べ替え">≡</span>`
+      : '';
     return `
       <li class="todo-item ${t.done?'done':''}" data-id="${t.id}">
+        ${dragHandle}
         <input type="checkbox" ${t.done?'checked':''} data-id="${t.id}">
         <div class="todo-body">
           <div class="todo-title" style="color:${escapeHtml(color)};">${escapeHtml(t.title)}</div>
@@ -3196,6 +3282,10 @@ function renderTodos() {
       renderTodos();
     });
   });
+  /* 手動順ソート時のみドラッグ並べ替えを有効化 */
+  if (sort === 'manual') {
+    setupTodoDrag(ul);
+  }
   /* 編集モードの操作 */
   ul.querySelectorAll('.todo-edit-form').forEach(form => {
     const id = form.dataset.id;
