@@ -631,6 +631,12 @@
     width: 100%; max-width: 100%;
     box-sizing: border-box;
     min-width: 0;
+    /* iOS Safari の date input がコンテンツに応じて勝手に広がるのを抑止 */
+    -webkit-appearance: none;
+    appearance: none;
+    padding: 7px 10px; font-size: 14px;
+    border: 1px solid var(--line); border-radius: 4px;
+    background: #fff; color: var(--ink); font-family: inherit;
   }
   .dateph-wrap > .dateph-label {
     position: absolute;
@@ -724,31 +730,27 @@
   }
   .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
-  /* Todo追加フォーム — 期限・カテゴリは両方コンパクトな固定幅で横並び（iPad縦置きでも確実に重ならない） */
+  /* Todo追加フォーム — Flexbox + 固定flex-basis でiPadでも確実に重ならない */
   .todo-add {
-    display: grid; gap: 8px; margin-bottom: 12px;
-    grid-template-columns: 1fr;
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 12px; align-items: center;
   }
-  .todo-add > * { min-width: 0; box-sizing: border-box; width: 100%; }
+  .todo-add > * { box-sizing: border-box; }
+  .todo-add #todoTitle    { flex: 1 1 100%; min-width: 0; }
+  .todo-add .dateph-wrap  { flex: 0 0 140px; max-width: 140px; }
+  .todo-add #todoCategory { flex: 0 0 170px; max-width: 170px; }
+  .todo-add #todoColorPick { flex: 0 0 auto; }
+  .todo-add #todoAdd      { flex: 0 0 auto; }
+  /* 各入力は親の幅に合わせる */
   .todo-add input[type="text"],
-  .todo-add input[type="date"] { width: 100%; }
-  .todo-add #todoColorPick { width: auto; justify-self: start; }
-  .todo-add #todoAdd { width: auto; justify-self: end; }
-  .todo-add .dateph-wrap { width: 100%; }
-  /* スマホサイズより広い画面（iPad縦置き〜Mac）で 2行構成・両欄コンパクト固定幅 */
-  @media (min-width: 600px) {
-    .todo-add {
-      /* [期限:140px] [カテゴリ:170px] [色:auto] [追加:auto] [余り] */
-      grid-template-columns: 140px 170px auto auto 1fr;
-      align-items: center;
-      gap: 12px;
-    }
-    .todo-add #todoTitle { grid-column: 1 / -1; }
-    .todo-add .dateph-wrap { grid-column: 1 / 2; }
-    .todo-add #todoCategory { grid-column: 2 / 3; }
-    .todo-add #todoColorPick { grid-column: 3 / 4; justify-self: center; }
-    .todo-add #todoAdd { grid-column: 4 / 5; }
-    /* 残り(5列目)は空白として確保。grid-template-columns末尾の 1fr が吸収 */
+  .todo-add input[type="date"] {
+    width: 100%; max-width: 100%; min-width: 0;
+    box-sizing: border-box;
+  }
+  /* スマホ未満の極端に狭い画面では各要素を縦に積む */
+  @media (max-width: 599px) {
+    .todo-add .dateph-wrap,
+    .todo-add #todoCategory { flex: 1 1 100%; max-width: 100%; }
   }
   .todo-filters {
     display: flex; gap: 10px; margin-bottom: 12px;
