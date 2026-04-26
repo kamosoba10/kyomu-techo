@@ -637,10 +637,13 @@
     padding: 7px 10px;
     font-size: 13px;
     line-height: 1.4;
-    height: 36px;             /* カテゴリ入力欄と同じ高さに揃える */
+    height: 36px;
     border: 1px solid var(--line); border-radius: 4px;
     background: #fff; color: var(--ink); font-family: inherit;
-    display: inline-block;
+    /* inline-block だとベースライン下に余白ができて wrap が高くなり、
+       flex内で中央揃え時に他の要素と縦位置がズレるため block にする */
+    display: block;
+    vertical-align: top;
   }
   .dateph-wrap > .dateph-label {
     position: absolute;
@@ -747,11 +750,12 @@
   .todo-add #todoCategory { flex: 0 0 170px; max-width: 170px; }
   .todo-add #todoColorPick { flex: 0 0 auto; }
   .todo-add #todoAdd      { flex: 0 0 auto; }
-  /* 各入力は親の幅に合わせる */
+  /* 各入力は親の幅と同じ高さ(36px)に揃え、縦方向で他の要素と揃う */
   .todo-add input[type="text"],
   .todo-add input[type="date"] {
     width: 100%; max-width: 100%; min-width: 0;
     box-sizing: border-box;
+    height: 36px; line-height: 1.4;
   }
   /* スマホ未満の極端に狭い画面では各要素を縦に積む */
   @media (max-width: 599px) {
@@ -839,8 +843,10 @@
     flex: 0 0 160px; max-width: 160px; min-width: 0;
   }
   .todo-edit-form .te-cat {
-    flex: 0 0 130px; max-width: 130px; min-width: 0;
-    padding: 6px 10px; font-size: 13px;
+    /* 「カテゴリ（任意）」のプレースホルダー全文が見える幅に拡大 */
+    flex: 0 0 160px; max-width: 160px; min-width: 0;
+    padding: 7px 10px; font-size: 13px;
+    line-height: 1.4; height: 36px;          /* 日付欄・クリアボタンと同じ高さ */
     border: 1px solid var(--line); border-radius: 4px;
     box-sizing: border-box;
   }
