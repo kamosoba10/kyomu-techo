@@ -374,13 +374,21 @@
     font-size: 11px; padding: 2px 10px;
   }
   table.week-grid th .wkh-pat .pat-chip:hover { opacity: 0.85; }
-  table.week-grid tr:not([data-special]) td { height: 62px; }
+  /* 通常時限は一定の高さに固定。td高さ + position:absolute で内容に依らず一定。 */
+  table.week-grid { table-layout: fixed; }
+  table.week-grid tr:not([data-special]) { height: 62px; }
   table.week-grid tr[data-special] td { height: 42px; }
+  table.week-grid tr:not([data-special]) td { height: 62px; vertical-align: middle; overflow: hidden; }
   table.week-grid .wk-cell {
-    padding: 10px 8px;
+    padding: 6px 6px;
     display: flex; flex-direction: column;
     justify-content: center; align-items: stretch;
-    height: 100%; min-height: 0;
+    height: 100%; min-height: 0; box-sizing: border-box;
+    overflow: hidden;
+  }
+  /* 通常時限のwk-cellは絶対配置で td を覆い、内容が大きくても拡張しない */
+  table.week-grid tr:not([data-special]) td > .wk-cell {
+    position: absolute; inset: 0;
   }
   table.week-grid .wk-subject {
     font-weight: 600; font-size: 14px;
@@ -390,6 +398,8 @@
   }
   table.week-grid .subject-cell { cursor: pointer; transition: background 0.1s; }
   table.week-grid .subject-cell:hover { background: var(--accent-soft); }
+  /* 曜日別時限数を超えるセル: 通常の予定入力可能セルとして表示 */
+  /* 時間割エディタの「曜日の時限数外」スタイルは廃止（手入力可） */
   table.week-grid .subject-cell.has-record::after {
     content: "✓"; position: absolute;
     top: 2px; right: 4px;
@@ -400,11 +410,12 @@
     width: 100%; margin: 0;
     border: 1px solid transparent;
     background: transparent;
-    padding: 6px; font-size: 12px;
+    padding: 4px; font-size: 12px;
     font-family: inherit; color: var(--ink);
     resize: none; border-radius: 2px;
-    height: 50px; min-height: 0;
+    height: 100%; min-height: 0; max-height: 100%;
     overflow: auto;
+    box-sizing: border-box;
   }
   table.week-grid tr[data-special] textarea.day-note-input { height: 30px; }
   table.week-grid textarea.day-note-input:hover { background: #f4f4f4; }
@@ -506,9 +517,153 @@
   /* Records */
   .rec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 800px) { .rec-grid { grid-template-columns: 1fr; } }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 10px; }
   .form-row.one { grid-template-columns: 1fr; }
-  .form-row .field input, .form-row .field select { width: 100%; }
+  /* グリッドアイテムが内容により拡がって隣のセルに食い込まないよう、min-width:0 を付与 */
+  .form-row .field { min-width: 0; }
+  .form-row .field input, .form-row .field select { width: 100%; max-width: 100%; }
+  /* 授業記録: 日付・時限の読み取り専用表示 */
+  .readonly-disp {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 7px 10px;
+    font-size: 14px;
+    color: var(--ink);
+    min-height: 36px;
+    width: 100%; max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* 科目入力の右に置く「一覧から選ぶ」ボタン（iPad の datalist 不安定対策） */
+  .field { position: relative; }
+  .subj-pick-btn {
+    position: absolute; right: 4px; top: 28px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 10px;
+    border-radius: 4px; font-size: 12px;
+    cursor: pointer; font-family: inherit;
+  }
+  .subj-pick-btn:hover { background: var(--accent); color: #fff; }
+  /* 科目選択モーダル */
+  .subj-modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200; display: none;
+    align-items: flex-start; justify-content: center;
+    padding-top: 60px;
+  }
+  .subj-modal-bg.show { display: flex; }
+  .subj-modal {
+    background: #fff;
+    width: min(420px, 92vw);
+    max-height: 70vh; overflow: hidden;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    display: flex; flex-direction: column;
+  }
+  .subj-modal h3 {
+    margin: 0; padding: 14px 16px;
+    background: var(--accent); color: #fff;
+    font-size: 15px; display: flex;
+    justify-content: space-between; align-items: center;
+  }
+  .subj-modal h3 button {
+    background: rgba(255,255,255,0.25);
+    border: none; color: #fff;
+    border-radius: 4px;
+    padding: 4px 10px; cursor: pointer; font-family: inherit;
+  }
+  .subj-modal-search { padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .subj-modal-search input {
+    width: 100%; padding: 8px 10px; font-size: 14px;
+    border: 1px solid var(--line); border-radius: 4px; box-sizing: border-box;
+  }
+  .subj-modal-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+  .subj-modal-list .subj-opt {
+    padding: 11px 16px; cursor: pointer;
+    border-bottom: 1px solid #f3f3f3;
+    font-size: 14px;
+  }
+  .subj-modal-list .subj-opt:hover, .subj-modal-list .subj-opt:active {
+    background: var(--accent-soft);
+  }
+  .subj-modal-list .subj-empty {
+    padding: 20px 16px; text-align: center; color: var(--muted); font-size: 13px;
+  }
+  /* キーボード閉じるボタン（フォーカス中のみ表示） */
+  .kbd-dismiss {
+    position: fixed; right: 12px; bottom: 12px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 999px;
+    padding: 12px 18px; font-size: 14px; font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    cursor: pointer; z-index: 300;
+    display: none;
+    font-family: inherit;
+  }
+  .kbd-dismiss.show { display: inline-block; }
+  /* iPad の date input は値が空のときプレースホルダーが見えないことがあるため、
+     横にヒントラベルを併置する。Macでは重複表示を避けるためJSで非表示にする。 */
+  .dateph-wrap { display: inline-flex; align-items: center; gap: 6px; }
+  .dateph-wrap > .dateph-label {
+    color: var(--muted); font-size: 12px;
+    white-space: nowrap;
+  }
+  .dateph-wrap.has-value > .dateph-label { display: none; }
+  .dateph-wrap.no-hint > .dateph-label { display: none; }
+  /* TODOの文字色ピッカー */
+  .todo-color-pick {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 4px; padding: 4px 8px;
+    cursor: pointer; user-select: none;
+    font-size: 11px; color: var(--muted);
+  }
+  .todo-color-cur {
+    display: inline-block; width: 16px; height: 16px;
+    border-radius: 50%; border: 1px solid #ccc;
+  }
+  .todo-color-arrow { font-size: 10px; }
+  .todo-color-popover {
+    position: absolute; background: #fff;
+    border: 1px solid var(--line); border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+    padding: 8px; z-index: 250;
+    display: none; gap: 6px;
+  }
+  .todo-color-popover.show { display: flex; }
+  .todo-color-popover .swatch {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid #ddd; cursor: pointer;
+  }
+  .todo-color-popover .swatch:hover { border-color: var(--accent); }
+  .todo-color-popover .swatch.cur { border-color: var(--accent); border-width: 3px; }
+  .todo-item .todo-color-mini {
+    display: inline-block; width: 14px; height: 14px;
+    border-radius: 50%; border: 1px solid #ccc;
+    cursor: pointer; flex-shrink: 0;
+    margin-right: 4px;
+  }
+  /* 曜日ごとの時限数グリッド */
+  .day-periods-grid {
+    border-collapse: collapse;
+    width: 100%; max-width: 540px;
+  }
+  .day-periods-grid th, .day-periods-grid td {
+    border: 1px solid var(--line); padding: 4px 6px;
+    text-align: center; font-size: 13px;
+  }
+  .day-periods-grid th { background: #f4f4f4; font-weight: 600; }
+  .day-periods-grid input.dp-num {
+    width: 48px; text-align: center;
+    padding: 4px; font-size: 14px;
+    border: 1px solid var(--line); border-radius: 3px;
+  }
   .field { display: flex; flex-direction: column; }
   .record-list { max-height: 560px; overflow-y: auto; }
   .record-item {
@@ -817,19 +972,18 @@
 </header>
 
 <nav class="tabs">
-  <button data-tab="calendar" class="active">月間カレンダー</button>
-  <button data-tab="week">週間カレンダー</button>
+  <button data-tab="week" class="active">週間カレンダー</button>
   <button data-tab="records">授業記録</button>
   <button data-tab="todos">TODO <span class="badge" id="todoBadge" style="display:none;">0</span></button>
+  <button data-tab="calendar">月間カレンダー</button>
   <button data-tab="settings">設定</button>
 </nav>
 
 <datalist id="subjectList"></datalist>
-<datalist id="classList"></datalist>
 
 <main>
   <!-- ===== カレンダー ===== -->
-  <section id="view-calendar" class="view active">
+  <section id="view-calendar" class="view">
     <div class="panel">
       <h2>月間カレンダー（A・Bの割り当て）</h2>
       <div class="cal-nav no-print">
@@ -900,7 +1054,9 @@
           <button class="btn secondary small" id="dpoClear">この日の設定を解除</button>
         </div>
         <div class="help" style="margin-top:6px;">
-          例: 月曜日だけど水曜日の3〜5限の時間割で、午後は休み → 対象日: 該当日 / 曜日として使う: 水曜日 / 時限の範囲: 3〜5
+          例: 「今日は月曜だが、水曜の3〜5限の時間割を3コマだけ実施したい」<br>
+          → 対象日: 該当日 / 曜日として使う: 水曜日 / 時限の範囲: 3〜5<br>
+          このとき、対象日のp1=水曜のp3、p2=p4、p3=p5として表示されます（合計3コマ、それ以降は授業なし）。
         </div>
         <div id="dpoList" class="dpo-list"></div>
       </div>
@@ -918,15 +1074,15 @@
   </section>
 
   <!-- ===== 週間カレンダー ===== -->
-  <section id="view-week" class="view">
+  <section id="view-week" class="view active">
     <div class="panel">
       <h2>週間カレンダー</h2>
       <div class="cal-nav no-print">
         <button class="btn secondary" id="weekPrev">◀ 前週</button>
         <div class="cal-label" id="weekLabel">—</div>
-        <button class="btn secondary" id="weekNext">次週 ▶</button>
         <button class="btn secondary small" id="weekToday">今週へ</button>
         <button class="btn secondary small" onclick="window.print()">印刷</button>
+        <button class="btn secondary" id="weekNext" style="margin-left:auto;">次週 ▶</button>
       </div>
       <table class="week-grid" id="weekGrid"></table>
     </div>
@@ -945,21 +1101,20 @@
         <div class="form-row">
           <div class="field">
             <label>日付</label>
-            <input id="recDate" type="date">
+            <div id="recDateDisp" class="readonly-disp">—</div>
+            <input id="recDate" type="hidden">
           </div>
           <div class="field">
             <label>時限</label>
-            <select id="recPeriod"></select>
+            <div id="recPeriodDisp" class="readonly-disp">—</div>
+            <input id="recPeriod" type="hidden">
           </div>
         </div>
-        <div class="form-row">
-          <div class="field">
-            <label>クラス（任意）</label>
-            <input id="recClass" type="text" placeholder="例: 2年A組" list="classList">
-          </div>
+        <div class="form-row one">
           <div class="field">
             <label>科目</label>
-            <input id="recSubject" type="text" placeholder="例: 数学II" list="subjectList">
+            <input id="recSubject" type="text" placeholder="例: 11英C" list="subjectList" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <button type="button" class="subj-pick-btn" id="recSubjectPickBtn" title="マスタから科目を選ぶ">▼ 一覧から選ぶ</button>
           </div>
         </div>
         <div class="form-row one">
@@ -990,7 +1145,6 @@
           <button class="btn" id="recSave">保存</button>
           <button class="btn secondary" id="recNew">新規</button>
           <button class="btn danger" id="recDelete">記録を削除</button>
-          <button class="btn secondary" id="recCopy">前回をコピー</button>
         </div>
         <div class="btn-row" style="margin-top:6px;">
           <button class="btn secondary small" id="recDeletePeriod" title="この日・時限の授業コマを週間カレンダーから非表示にします">このコマを削除（週間カレンダーから）</button>
@@ -1007,12 +1161,12 @@
             <select id="recSort">
               <option value="date-desc">日付の新しい順</option>
               <option value="date-asc">日付の古い順</option>
-              <option value="class">クラス順</option>
+              <option value="subject">科目順</option>
             </select>
           </div>
           <div class="field" style="flex:1;">
-            <label>クラスで絞り込み</label>
-            <select id="recFilterClass"><option value="">すべて</option></select>
+            <label>科目で絞り込み</label>
+            <select id="recFilterSubject"><option value="">すべて</option></select>
           </div>
         </div>
         <div class="record-list" id="recordList"></div>
@@ -1026,9 +1180,13 @@
       <h2>TODOリスト</h2>
       <form id="todoForm" class="todo-add" onsubmit="return false;">
         <input id="todoTitle" type="text" placeholder="やることを入力" required>
-        <input id="todoDue" type="date" title="期限（任意）">
+        <span class="dateph-wrap"><input id="todoDue" type="date" title="期限（任意）"><span class="dateph-label">期限を選択（任意）</span></span>
         <input id="todoCategory" type="text" placeholder="カテゴリ（任意）" list="todoCatList">
         <datalist id="todoCatList"></datalist>
+        <span class="todo-color-pick" id="todoColorPick" title="文字色を選ぶ">
+          <span class="todo-color-cur" id="todoColorCur" style="background:#222;"></span>
+          <span class="todo-color-arrow">▼</span>
+        </span>
         <button class="btn" id="todoAdd" type="submit">追加</button>
       </form>
       <div class="todo-filters">
@@ -1083,13 +1241,22 @@
           </select>
         </div>
         <div class="field">
-          <label>時限数</label>
+          <label>時限数（最大）</label>
           <input id="cfgPeriods" type="number" min="1" max="10">
         </div>
         <div class="field">
           <label>昼休み位置</label>
           <select id="cfgLunchAfter"></select>
         </div>
+      </div>
+      <div class="settings-row" style="margin-top:8px;">
+        <div class="field" style="flex:1;">
+          <label>曜日ごとの時限数（0なら授業なし）</label>
+          <table class="day-periods-grid" id="dayPeriodsGrid"></table>
+        </div>
+      </div>
+      <div class="help" style="margin-top:6px;">
+        曜日ごとに通常の時限数を設定できます。週間カレンダーでは、各曜日この時限数まで授業セルが表示されます。
       </div>
     </div>
     <div class="panel pat-A">
@@ -1120,17 +1287,11 @@
       <table class="timetable" id="ttB-grid"></table>
     </div>
     <div class="panel">
-      <h2>科目・クラス マスタ</h2>
+      <h2>科目マスタ</h2>
       <div class="form-row one">
         <div class="field">
           <label>科目一覧（カンマ区切り）— 時間割セルと授業記録の入力候補として表示</label>
-          <input id="masterSubjects" type="text" placeholder="例: 現代文, 数学II, 英語CⅡ, 物理基礎, 日本史B ...">
-        </div>
-      </div>
-      <div class="form-row one">
-        <div class="field">
-          <label>クラス一覧（カンマ区切り）</label>
-          <input id="masterClasses" type="text" placeholder="例: 1年A組, 1年B組, 2年A組 ...">
+          <input id="masterSubjects" type="text" placeholder="例: 11英C, 12現文, 21数B, 32論表 ...">
         </div>
       </div>
       <div class="btn-row">
@@ -1139,7 +1300,7 @@
         <button class="btn secondary" id="masterClearSubjects">科目を全削除</button>
       </div>
       <div class="help" style="margin-top:10px;">
-        登録した科目・クラスは入力時の候補として表示されます。候補に無い名前も直接入力できます。
+        登録した科目は時間割セルや授業記録の入力候補として表示されます。候補に無い名前も直接入力できます。
       </div>
     </div>
     <div class="panel">
@@ -1196,6 +1357,20 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- 科目選択モーダル -->
+<div class="subj-modal-bg" id="subjModalBg">
+  <div class="subj-modal" role="dialog">
+    <h3>科目を選ぶ <button type="button" id="subjModalClose">閉じる ✕</button></h3>
+    <div class="subj-modal-search">
+      <input type="search" id="subjModalSearch" placeholder="絞り込み（例: 11英）" autocomplete="off">
+    </div>
+    <div class="subj-modal-list" id="subjModalList"></div>
+  </div>
+</div>
+
+<!-- ソフトキーボードを閉じるためのフローティングボタン（iPadで活躍） -->
+<button type="button" class="kbd-dismiss" id="kbdDismissBtn" aria-label="キーボードを閉じる" title="キーボードを閉じる">⌨ 閉じる</button>
+
 <script>
 /* ========== ユーティリティ ========== */
 const STORAGE_KEY = 'kyomu_techo_v1';
@@ -1241,26 +1416,47 @@ const DEFAULT_CATEGORY_COLORS = {
 
 function defaultData() {
   return {
-    config: { days: 5, periods: 6, lunchAfter: 4 },
+    config: {
+      days: 5, periods: 6, lunchAfter: 4,
+      /* 曜日別の時限数 (key: ourWeekday 0=月..6=日) */
+      dayPeriods: { 0: 6, 1: 6, 2: 6, 3: 6, 4: 6, 5: 0, 6: 0 }
+    },
     timetables: {
       A: { cells: {}, specials: { before: {}, lunch: {}, after: {} } },
       B: { cells: {}, specials: { before: {}, lunch: {}, after: {} } }
     },
     dayAssignments: {},
-    defaultPattern: '',  /* Request 5: 初期は未設定 */
+    defaultPattern: '',
     dayNotes: {},
     dayOverrides: {},
-    dayPatternOverrides: {}, /* Request 4: 日替わり時間割 */
-    holidays: {},          /* 祝日として登録された日 (iso -> true) */
-    shortDays: {},         /* 短縮授業設定 (iso -> { minutes: 60 } など) */
+    dayPatternOverrides: {},
+    holidays: {},
+    shortDays: {},
     records: [],
     todos: [],
     masters: { subjects: [], classes: [] },
     categoryColors: Object.assign({}, DEFAULT_CATEGORY_COLORS),
     subjectCategories: {},
-    subjectMemos: {},      /* 科目ごとの「この授業でやることメモ」 */
+    subjectMemos: {},
     examDate: ''
   };
+}
+
+/* dayPeriods が未定義の旧データを補完するヘルパ */
+function ensureDayPeriods(cfg) {
+  if (!cfg.dayPeriods || typeof cfg.dayPeriods !== 'object') {
+    cfg.dayPeriods = {};
+    for (let d = 0; d < 7; d++) {
+      cfg.dayPeriods[d] = (d < (cfg.days || 5)) ? (cfg.periods || 6) : 0;
+    }
+  } else {
+    /* 欠損キーを既定で埋める */
+    for (let d = 0; d < 7; d++) {
+      if (!(d in cfg.dayPeriods)) {
+        cfg.dayPeriods[d] = (d < (cfg.days || 5)) ? (cfg.periods || 6) : 0;
+      }
+    }
+  }
 }
 
 function currentSchoolYear() {
@@ -1279,7 +1475,7 @@ function migrate(d) {
   if (!d || typeof d !== 'object') return base;
   // v2: already current format
   if (d.config && d.timetables && d.timetables.A) {
-    return Object.assign(base, d, {
+    const merged = Object.assign(base, d, {
       config: Object.assign(base.config, d.config),
       timetables: {
         A: Object.assign({cells:{}, specials:{before:{},lunch:{},after:{}}}, d.timetables.A),
@@ -1300,6 +1496,8 @@ function migrate(d) {
       subjectMemos: d.subjectMemos || {},
       examDate: d.examDate || ''
     });
+    ensureDayPeriods(merged.config);
+    return merged;
   }
   // v1.2: timetables as array
   if (Array.isArray(d.timetables)) {
@@ -1337,6 +1535,7 @@ function migrate(d) {
   base.subjectCategories = d.subjectCategories || {};
   base.subjectMemos = d.subjectMemos || {};
   base.examDate = d.examDate || '';
+  ensureDayPeriods(base.config);
   return base;
 }
 
@@ -1624,12 +1823,7 @@ function refreshDatalists() {
     ...state.masters.subjects, ...cellSubjects,
     ...state.records.map(r => r.subject).filter(Boolean)
   ])).sort((a,b)=>a.localeCompare(b,'ja'));
-  const classes = Array.from(new Set([
-    ...state.masters.classes,
-    ...state.records.map(r => r.cls).filter(Boolean)
-  ])).sort((a,b)=>a.localeCompare(b,'ja'));
   $('#subjectList').innerHTML = subjects.map(s => `<option value="${escapeHtml(s)}">`).join('');
-  $('#classList').innerHTML = classes.map(c => `<option value="${escapeHtml(c)}">`).join('');
 }
 
 /* ========== 時間割エディタ（A/B共通） ========== */
@@ -1647,6 +1841,7 @@ function renderTimetableEditor(key) {
   for (let d = 0; d < days; d++) html += `<th>${WEEKDAYS[d]}</th>`;
   html += '</tr>';
 
+  ensureDayPeriods(cfg);
   const addPeriod = (p) => {
     let row = `<tr><td class="period-head">${p}</td>`;
     for (let d = 0; d < days; d++) {
@@ -2051,12 +2246,24 @@ function renderWeek() {
     return row;
   };
 
+  /* 各列(日付)の有効時限数を事前に算出 */
+  const dayPeriodCounts = isos.map(iso => getEffectivePeriodCount(iso));
+  /* この週で実際に表示すべき最大時限数 */
+  const maxPeriodInWeek = Math.max(0, ...dayPeriodCounts);
+
   const periodRow = (p) => {
     let row = `<tr><td class="period-head">${p}限</td>`;
     for (let d = 0; d < days; d++) {
       const iso = isos[d];
-      const eff = getEffectiveSubject(iso, p);
       const cellClsAttr = holidays[d] ? ' class="holiday"' : '';
+      /* この日の時限数を超えるセルも、通常の空きコマと同じ形（予定textarea＋＋授業ボタン）にする */
+      if (p > dayPeriodCounts[d]) {
+        const slotKey = `p${p}`;
+        const val = getDayNote(iso, slotKey);
+        row += `<td${cellClsAttr}><div class="wk-cell"><textarea class="day-note-input" data-iso="${iso}" data-slot="${slotKey}">${escapeHtml(val)}</textarea><button class="wk-add-subject" data-iso="${iso}" data-period="${p}" title="この日・時限に授業を追加">＋授業</button></div></td>`;
+        continue;
+      }
+      const eff = getEffectiveSubject(iso, p);
       if (eff.subject) {
         const hasRecord = state.records.some(r => r.date === iso && r.period === p && r.subject === eff.subject);
         const recCls = hasRecord ? ' has-record' : '';
@@ -2081,12 +2288,15 @@ function renderWeek() {
 
   html += planRow();
   html += specialRow('before', '始業前');
-  if (lunchAfter > 0) {
-    for (let p = 1; p <= lunchAfter; p++) html += periodRow(p);
-    if (lunchAfter < periods) html += specialRow('lunch', '昼休み');
-    for (let p = lunchAfter + 1; p <= periods; p++) html += periodRow(p);
+  /* 表示する時限数 = この週の最大有効時限数 */
+  const dispPeriods = Math.max(maxPeriodInWeek, 0);
+  const dispLunchAfter = Math.min(lunchAfter, dispPeriods);
+  if (dispLunchAfter > 0) {
+    for (let p = 1; p <= dispLunchAfter; p++) html += periodRow(p);
+    if (dispLunchAfter < dispPeriods) html += specialRow('lunch', '昼休み');
+    for (let p = dispLunchAfter + 1; p <= dispPeriods; p++) html += periodRow(p);
   } else {
-    for (let p = 1; p <= periods; p++) html += periodRow(p);
+    for (let p = 1; p <= dispPeriods; p++) html += periodRow(p);
   }
   html += specialRow('after', '放課後');
   html += '</tbody>';
@@ -2131,6 +2341,19 @@ function setDayNote(iso, slot, value) {
   save();
 }
 
+/* 日付の有効な時限数（dpoの時限範囲があればその長さ、なければ曜日別設定） */
+function getEffectivePeriodCount(iso) {
+  const dt = parseDate(iso);
+  if (!dt) return 0;
+  const dpo = state.dayPatternOverrides && state.dayPatternOverrides[iso];
+  if (dpo && dpo.fromPeriod && dpo.toPeriod) {
+    return Math.max(0, parseInt(dpo.toPeriod) - parseInt(dpo.fromPeriod) + 1);
+  }
+  ensureDayPeriods(state.config);
+  const wd = ourWeekday(dt);
+  return state.config.dayPeriods[wd] != null ? state.config.dayPeriods[wd] : (state.config.periods || 6);
+}
+
 /* 日付・時限ごとの授業科目オーバーライド取得・保存 */
 function getPatternSubject(iso, p) {
   const effective = getEffectivePattern(iso);
@@ -2138,18 +2361,28 @@ function getPatternSubject(iso, p) {
   if (effective === 'O') return ''; // 「その他」は授業なし
   const dt = parseDate(iso);
   if (!dt) return '';
-  /* Request 4: 日替わり時間割（曜日入替・時限範囲制限） */
+  /* 日替わり時間割（曜日入替＋時限範囲指定で時限を再マッピング） */
   const dpo = state.dayPatternOverrides && state.dayPatternOverrides[iso];
   let useDay = ourWeekday(dt);
+  let usePeriod = p;
   if (dpo) {
     if (dpo.useWeekday != null && dpo.useWeekday !== '' && dpo.useWeekday >= 0 && dpo.useWeekday <= 6) {
       useDay = parseInt(dpo.useWeekday);
     }
-    if (dpo.fromPeriod && p < dpo.fromPeriod) return '';
-    if (dpo.toPeriod && p > dpo.toPeriod) return '';
+    /* fromPeriod/toPeriod が両方ある場合は再マッピング:
+       今日のp1 → 源のfromPeriod, p2 → fromPeriod+1 ... 範囲外は授業なし */
+    if (dpo.fromPeriod && dpo.toPeriod) {
+      const span = parseInt(dpo.toPeriod) - parseInt(dpo.fromPeriod) + 1;
+      if (p < 1 || p > span) return '';
+      usePeriod = parseInt(dpo.fromPeriod) + (p - 1);
+    } else if (dpo.fromPeriod) {
+      if (p < dpo.fromPeriod) return '';
+    } else if (dpo.toPeriod) {
+      if (p > dpo.toPeriod) return '';
+    }
   }
   const pat = state.timetables[effective];
-  const cell = (pat && pat.cells[`${useDay}-${p}`]) || {};
+  const cell = (pat && pat.cells[`${useDay}-${usePeriod}`]) || {};
   return cell.subject || '';
 }
 /* Returns { subject, isOverride, isDeleted }
@@ -2397,7 +2630,23 @@ $('#weekToday').addEventListener('click', () => {
 });
 
 /* ========== 時間割→授業記録への遷移 ========== */
-function gotoRecord(dateIso, p, cls, subject) {
+function setRecordDatePeriodDisp(dateIso, p) {
+  $('#recDate').value = dateIso || '';
+  $('#recPeriod').value = p || '';
+  const dd = $('#recDateDisp');
+  if (dd) {
+    if (dateIso) {
+      const d = new Date(dateIso + 'T00:00:00');
+      const dn = ['日','月','火','水','木','金','土'][d.getDay()];
+      dd.textContent = `${dateIso}（${dn}）`;
+    } else {
+      dd.textContent = '—';
+    }
+  }
+  const pd = $('#recPeriodDisp');
+  if (pd) pd.textContent = p ? (p + '時限') : '—';
+}
+function gotoRecord(dateIso, p, _ignored, subject) {
   switchTab('records');
   // If subject was not provided, use the effective (override-aware) subject for the day/period
   if (!subject) {
@@ -2406,18 +2655,17 @@ function gotoRecord(dateIso, p, cls, subject) {
   }
   const existing = state.records.find(r =>
     r.date === dateIso && r.period === p &&
-    (!cls || r.cls === cls) && (!subject || r.subject === subject)
+    (!subject || r.subject === subject)
   );
   if (existing) {
     loadRecord(existing.id);
     toast(`${dateIso} ${p}限の記録を開きました`);
   } else {
     newRecord();
-    $('#recDate').value = dateIso;
-    $('#recPeriod').value = p;
-    $('#recClass').value = cls || '';
+    setRecordDatePeriodDisp(dateIso, p);
     $('#recSubject').value = subject || '';
     refreshLastProgressHint();
+    refreshSubjectMemo();
     toast(`${dateIso} ${p}限の記録を入力`);
   }
 }
@@ -2425,48 +2673,40 @@ function gotoRecord(dateIso, p, cls, subject) {
 /* ========== 授業記録 ========== */
 function getFilteredRecords() {
   const q = ($('#recSearch').value || '').toLowerCase().trim();
-  const cls = $('#recFilterClass').value;
+  const subj = ($('#recFilterSubject') ? $('#recFilterSubject').value : '');
   const sort = $('#recSort').value;
   let list = state.records.slice();
-  if (cls) list = list.filter(r => r.cls === cls);
+  if (subj) list = list.filter(r => r.subject === subj);
   if (q) {
     list = list.filter(r =>
-      [r.cls, r.subject, r.progress, r.note]
+      [r.subject, r.progress, r.note]
         .filter(Boolean).join(' ').toLowerCase().includes(q)
     );
   }
-  if (sort === 'date-desc') list.sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.period - a.period));
-  else if (sort === 'date-asc') list.sort((a,b) => (a.date||'').localeCompare(b.date||'') || (a.period - b.period));
-  else if (sort === 'class') list.sort((a,b) => (a.cls||'').localeCompare(b.cls||'','ja') || (b.date||'').localeCompare(a.date||''));
+  if (sort === 'date-desc') list.sort((a,b) => (b.date||'').localeCompare(a.date||'') || ((b.period||0) - (a.period||0)));
+  else if (sort === 'date-asc') list.sort((a,b) => (a.date||'').localeCompare(b.date||'') || ((a.period||0) - (b.period||0)));
+  else if (sort === 'subject') list.sort((a,b) => (a.subject||'').localeCompare(b.subject||'','ja') || (b.date||'').localeCompare(a.date||''));
   return list;
 }
 
 function renderRecords() {
-  const periodSel = $('#recPeriod');
-  const maxP = Math.max(state.config.periods, 6);
-  const curP = periodSel.value;
-  periodSel.innerHTML = '';
-  for (let p = 1; p <= maxP; p++) {
-    const o = document.createElement('option');
-    o.value = p; o.textContent = p + '時限';
-    periodSel.appendChild(o);
+  /* 科目で絞り込み（選択肢はマスタ＋記録の科目） */
+  const subjSel = $('#recFilterSubject');
+  if (subjSel) {
+    const subjects = Array.from(new Set([
+      ...(state.masters.subjects || []),
+      ...state.records.map(r => r.subject).filter(Boolean)
+    ])).sort((a,b) => a.localeCompare(b,'ja'));
+    const cur = subjSel.value;
+    subjSel.innerHTML = '<option value="">すべて</option>' +
+      subjects.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    subjSel.value = cur;
   }
-  if (curP) periodSel.value = curP;
-
-  const classSel = $('#recFilterClass');
-  const classes = Array.from(new Set([
-    ...state.masters.classes,
-    ...state.records.map(r => r.cls).filter(Boolean)
-  ])).sort((a,b) => a.localeCompare(b,'ja'));
-  const cur = classSel.value;
-  classSel.innerHTML = '<option value="">すべて</option>' +
-    classes.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-  classSel.value = cur;
 
   const list = getFilteredRecords();
   const listEl = $('#recordList');
   if (list.length === 0) {
-    listEl.innerHTML = '<div class="empty">記録がありません。左のフォームから入力してください。</div>';
+    listEl.innerHTML = '<div class="empty">記録がありません。週間カレンダーで授業を選択して入力してください。</div>';
     return;
   }
   listEl.innerHTML = list.map(r => {
@@ -2479,7 +2719,6 @@ function renderRecords() {
       <div class="record-item ${sel}" data-id="${r.id}">
         <div class="top">
           <span>${escapeHtml(r.date||'')} ・ ${r.period||''}限</span>
-          <span>${escapeHtml(r.cls||'')}</span>
         </div>
         <div class="title">${escapeHtml(r.subject||'(科目未設定)')}</div>
         <div class="snippet">${escapeHtml((r.progress||'').slice(0,80))}</div>
@@ -2509,9 +2748,7 @@ function renderRecords() {
 function newRecord() {
   $('#recId').value = '';
   $('#formTitle').textContent = '新規授業記録';
-  $('#recDate').value = todayStr();
-  $('#recPeriod').value = 1;
-  $('#recClass').value = '';
+  setRecordDatePeriodDisp('', '');
   $('#recSubject').value = '';
   $('#recProgress').value = '';
   $('#recNote').value = '';
@@ -2524,9 +2761,7 @@ function loadRecord(id) {
   if (!r) return;
   $('#recId').value = r.id;
   $('#formTitle').textContent = '授業記録を編集';
-  $('#recDate').value = r.date || '';
-  $('#recPeriod').value = r.period || 1;
-  $('#recClass').value = r.cls || '';
+  setRecordDatePeriodDisp(r.date || '', r.period || '');
   $('#recSubject').value = r.subject || '';
   // 旧形式データの進度互換: 旧unit/contentがあればprogressに合流表示
   const progress = r.progress != null ? r.progress
@@ -2589,14 +2824,16 @@ $('#recSave').addEventListener('click', () => {
   const rec = {
     id,
     date: $('#recDate').value,
-    period: parseInt($('#recPeriod').value) || 1,
-    cls: $('#recClass').value.trim(),
+    period: parseInt($('#recPeriod').value) || 0,
     subject: $('#recSubject').value.trim(),
     progress: $('#recProgress').value.trim(),
     note: $('#recNote').value.trim(),
     updated: new Date().toISOString()
   };
-  if (!rec.date) { toast('日付を入力してください'); return; }
+  if (!rec.date || !rec.period) {
+    toast('週間カレンダーまたは記録一覧から授業を選んでください');
+    return;
+  }
   const idx = state.records.findIndex(r => r.id === id);
   if (idx >= 0) state.records[idx] = rec;
   else state.records.push(rec);
@@ -2645,27 +2882,11 @@ $('#recDelete').addEventListener('click', () => {
   save(); newRecord(); renderRecords(); renderExamCountPanel();
   toast('削除しました');
 });
-$('#recCopy').addEventListener('click', () => {
-  const cls = $('#recClass').value.trim();
-  const subject = $('#recSubject').value.trim();
-  const candidates = state.records
-    .filter(r => (!cls || r.cls === cls) && (!subject || r.subject === subject))
-    .sort((a,b) => (b.date||'').localeCompare(a.date||''));
-  const last = candidates[0];
-  if (!last) { toast('コピー元が見つかりません'); return; }
-  $('#recId').value = '';
-  $('#formTitle').textContent = '新規授業記録';
-  $('#recClass').value = last.cls || '';
-  $('#recSubject').value = last.subject || '';
-  $('#recProgress').value = last.progress || [last.unit, last.content].filter(Boolean).join('\n') || '';
-  $('#recNote').value = '';
-  refreshLastProgressHint();
-  refreshSubjectMemo();
-  toast(`${last.date} の進度をコピーしました`);
-});
-['recSearch','recSort','recFilterClass'].forEach(id => {
-  $('#'+id).addEventListener('input', renderRecords);
-  $('#'+id).addEventListener('change', renderRecords);
+['recSearch','recSort','recFilterSubject'].forEach(id => {
+  const el = $('#'+id);
+  if (!el) return;
+  el.addEventListener('input', renderRecords);
+  el.addEventListener('change', renderRecords);
 });
 $('#recSubject').addEventListener('input', () => { refreshLastProgressHint(); refreshSubjectMemo(); });
 $('#recSubject').addEventListener('change', () => { refreshLastProgressHint(); refreshSubjectMemo(); });
@@ -2688,6 +2909,9 @@ $('#recTodoMemo').addEventListener('input', () => {
 });
 
 /* ========== TODO ========== */
+const TODO_COLORS = ['#222222','#e74c3c','#e67e22','#f1c40f','#27ae60','#3498db','#8e44ad'];
+let _todoNewColor = TODO_COLORS[0];
+
 function addTodo(e) {
   if (e) e.preventDefault();
   const title = $('#todoTitle').value.trim();
@@ -2696,15 +2920,80 @@ function addTodo(e) {
     id: uid(), title, done: false,
     due: $('#todoDue').value || '',
     category: $('#todoCategory').value.trim(),
+    color: _todoNewColor,
     created: new Date().toISOString()
   });
   $('#todoTitle').value = '';
   $('#todoDue').value = '';
+  syncDatePh($('#todoDue'));
   save(); renderTodos(); refreshTodoCats();
   toast('TODOを追加しました');
 }
 $('#todoForm').addEventListener('submit', addTodo);
 $('#todoAdd').addEventListener('click', addTodo);
+
+/* iPad の date input にプレースホルダー用ラベルを表示制御 */
+function syncDatePh(el) {
+  if (!el) return;
+  const wrap = el.closest('.dateph-wrap');
+  if (!wrap) return;
+  if (el.value) wrap.classList.add('has-value');
+  else wrap.classList.remove('has-value');
+}
+['change','input'].forEach(ev => {
+  const td = $('#todoDue');
+  if (td) td.addEventListener(ev, () => syncDatePh(td));
+});
+/* iOS以外（Mac等）はブラウザが「年/月/日」を出すので、こちらのラベルは非表示にする */
+const _isIOSDevice = (() => {
+  const ua = navigator.userAgent || '';
+  if (/iPhone|iPad|iPod/.test(ua)) return true;
+  /* iPadOS 13+ は MacIntel と名乗るのでタッチサポートで判別 */
+  if (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) return true;
+  return false;
+})();
+if (!_isIOSDevice) {
+  document.querySelectorAll('.dateph-wrap').forEach(w => w.classList.add('no-hint'));
+}
+
+/* TODO追加フォームの色ピッカー */
+function showColorPopover(anchor, currentColor, onPick) {
+  /* 既存のポップオーバーを除去 */
+  document.querySelectorAll('.todo-color-popover').forEach(x => x.remove());
+  const pop = document.createElement('div');
+  pop.className = 'todo-color-popover show';
+  pop.innerHTML = TODO_COLORS.map(c =>
+    `<div class="swatch ${c===currentColor?'cur':''}" style="background:${c};" data-c="${c}"></div>`
+  ).join('');
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect();
+  pop.style.left = (window.scrollX + r.left) + 'px';
+  pop.style.top  = (window.scrollY + r.bottom + 4) + 'px';
+  pop.querySelectorAll('.swatch').forEach(s => {
+    s.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onPick(s.dataset.c);
+      pop.remove();
+    });
+  });
+  /* クリック外で閉じる */
+  setTimeout(() => {
+    const closer = (e) => {
+      if (!pop.contains(e.target) && e.target !== anchor && !anchor.contains(e.target)) {
+        pop.remove();
+        document.removeEventListener('click', closer);
+      }
+    };
+    document.addEventListener('click', closer);
+  }, 0);
+}
+$('#todoColorPick').addEventListener('click', (e) => {
+  e.stopPropagation();
+  showColorPopover($('#todoColorPick'), _todoNewColor, (c) => {
+    _todoNewColor = c;
+    $('#todoColorCur').style.background = c;
+  });
+});
 
 function refreshTodoCats() {
   const cats = Array.from(new Set(state.todos.map(t => t.category).filter(Boolean))).sort((a,b)=>a.localeCompare(b,'ja'));
@@ -2757,11 +3046,13 @@ function renderTodos() {
       else if (!t.done && t.due === today) { dueCls = 'due-soon'; dueLabel = `今日締切`; }
       else dueLabel = `期限: ${t.due}`;
     }
+    const color = t.color || TODO_COLORS[0];
     return `
       <li class="todo-item ${t.done?'done':''}" data-id="${t.id}">
         <input type="checkbox" ${t.done?'checked':''} data-id="${t.id}">
+        <span class="todo-color-mini" data-id="${t.id}" style="background:${escapeHtml(color)};" title="文字色を変更"></span>
         <div class="todo-body">
-          <div class="todo-title">${escapeHtml(t.title)}</div>
+          <div class="todo-title" style="color:${escapeHtml(color)};">${escapeHtml(t.title)}</div>
           <div class="todo-meta">
             ${t.category ? `<span class="cat">${escapeHtml(t.category)}</span>`:''}
             <span class="${dueCls}">${escapeHtml(dueLabel)}</span>
@@ -2770,6 +3061,19 @@ function renderTodos() {
         <button class="todo-del" data-id="${t.id}" title="削除">×</button>
       </li>`;
   }).join('');
+  /* 各TODOの文字色を変更するスウォッチ */
+  ul.querySelectorAll('.todo-color-mini').forEach(sw => {
+    sw.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = sw.dataset.id;
+      const t = state.todos.find(x => x.id === id);
+      if (!t) return;
+      showColorPopover(sw, t.color || TODO_COLORS[0], (c) => {
+        t.color = c;
+        save(); renderTodos();
+      });
+    });
+  });
   ul.querySelectorAll('input[type="checkbox"]').forEach(cb => {
     cb.addEventListener('change', () => toggleTodo(cb.dataset.id));
   });
@@ -2838,9 +3142,40 @@ function renderSettings() {
   }
   lunchSel.value = Math.min(cfg.lunchAfter || 0, cfg.periods - 1);
   $('#masterSubjects').value = (state.masters.subjects||[]).join(', ');
-  $('#masterClasses').value = (state.masters.classes||[]).join(', ');
   $('#cfgExamDate').value = state.examDate || '';
+  renderDayPeriodsGrid();
   renderCategoryGrid();
+}
+
+/* 曜日ごとの時限数グリッドを表示 */
+function renderDayPeriodsGrid() {
+  const tbl = $('#dayPeriodsGrid');
+  if (!tbl) return;
+  ensureDayPeriods(state.config);
+  const dp = state.config.dayPeriods;
+  const max = state.config.periods || 6;
+  let html = '<tr>';
+  for (let d = 0; d < 7; d++) html += `<th>${WEEKDAYS[d]}</th>`;
+  html += '</tr><tr>';
+  for (let d = 0; d < 7; d++) {
+    const v = dp[d] != null ? dp[d] : 0;
+    html += `<td><input type="number" class="dp-num" min="0" max="${max}" data-d="${d}" value="${v}"></td>`;
+  }
+  html += '</tr>';
+  tbl.innerHTML = html;
+  tbl.querySelectorAll('.dp-num').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const d = parseInt(inp.dataset.d);
+      let v = parseInt(inp.value); if (isNaN(v) || v < 0) v = 0;
+      const cap = state.config.periods || 6;
+      if (v > cap) v = cap;
+      inp.value = v;
+      state.config.dayPeriods[d] = v;
+      save();
+      if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+      renderTimetableEditor('A'); renderTimetableEditor('B');
+    });
+  });
 }
 
 function renderCategoryGrid() {
@@ -2922,18 +3257,39 @@ $('#yearDelete').addEventListener('click', () => {
 });
 
 $('#cfgDays').addEventListener('change', e => {
-  state.config.days = parseInt(e.target.value);
+  const newDays = parseInt(e.target.value);
+  state.config.days = newDays;
+  /* 曜日数を増やしたら、その曜日の dayPeriods を 0 → 通常時限数に */
+  ensureDayPeriods(state.config);
+  for (let d = 0; d < 7; d++) {
+    if (d < newDays && state.config.dayPeriods[d] === 0) {
+      state.config.dayPeriods[d] = state.config.periods || 6;
+    }
+    if (d >= newDays) {
+      state.config.dayPeriods[d] = 0;
+    }
+  }
   save(); renderSettings();
+  renderTimetableEditor('A'); renderTimetableEditor('B');
+  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
 });
 $('#cfgPeriods').addEventListener('change', e => {
   const v = Math.max(1, Math.min(10, parseInt(e.target.value) || 6));
   state.config.periods = v;
   if (state.config.lunchAfter >= v) state.config.lunchAfter = Math.max(0, v-1);
+  /* 既存の dayPeriods が新最大を超える場合は丸める */
+  ensureDayPeriods(state.config);
+  for (let d = 0; d < 7; d++) {
+    if (state.config.dayPeriods[d] > v) state.config.dayPeriods[d] = v;
+  }
   save(); renderSettings();
+  renderTimetableEditor('A'); renderTimetableEditor('B');
+  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
 });
 $('#cfgLunchAfter').addEventListener('change', e => {
   state.config.lunchAfter = parseInt(e.target.value) || 0;
   save(); renderSettings();
+  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
 });
 $('#cfgExamDate').addEventListener('change', e => {
   state.examDate = e.target.value || '';
@@ -2949,9 +3305,10 @@ $('#cfgExamClear').addEventListener('click', () => {
 
 $('#masterSave').addEventListener('click', () => {
   state.masters.subjects = $('#masterSubjects').value.split(',').map(s => s.trim()).filter(Boolean);
-  state.masters.classes = $('#masterClasses').value.split(',').map(s => s.trim()).filter(Boolean);
+  /* クラス概念は廃止。互換のため空配列を維持 */
+  state.masters.classes = [];
   save(); refreshDatalists();
-  toast('マスタを保存しました');
+  toast('科目マスタを保存しました');
 });
 $('#masterTplHigh').addEventListener('click', () => {
   const existing = new Set(state.masters.subjects);
@@ -3022,6 +3379,102 @@ $('#btnReset').addEventListener('click', () => {
   toast('初期化しました');
 });
 
+/* ========== 科目選択モーダル ========== */
+let _subjModalTargetInput = null;
+function openSubjModal(targetInputId) {
+  _subjModalTargetInput = $('#' + targetInputId);
+  if (!_subjModalTargetInput) return;
+  /* 候補を集める：マスタ＋時間割セル＋既存記録 */
+  const cellSubjects = [];
+  ['A','B'].forEach(k => {
+    const t = state.timetables[k];
+    if (!t) return;
+    Object.values(t).forEach(row => Object.values(row).forEach(s => {
+      if (s) cellSubjects.push(s);
+    }));
+  });
+  const all = Array.from(new Set([
+    ...(state.masters.subjects || []),
+    ...cellSubjects,
+    ...state.records.map(r => r.subject).filter(Boolean)
+  ])).sort((a,b) => a.localeCompare(b,'ja'));
+  $('#subjModalSearch').value = '';
+  renderSubjModalList(all);
+  $('#subjModalBg').classList.add('show');
+  setTimeout(() => $('#subjModalSearch').focus(), 50);
+}
+function renderSubjModalList(items) {
+  const wrap = $('#subjModalList');
+  if (!items || items.length === 0) {
+    wrap.innerHTML = '<div class="subj-empty">該当する科目がありません</div>';
+    return;
+  }
+  wrap.innerHTML = items.map(s => `<div class="subj-opt" data-v="${escapeHtml(s)}">${escapeHtml(s)}</div>`).join('');
+  wrap.querySelectorAll('.subj-opt').forEach(el => {
+    el.addEventListener('click', () => {
+      if (_subjModalTargetInput) {
+        _subjModalTargetInput.value = el.dataset.v;
+        _subjModalTargetInput.dispatchEvent(new Event('input', {bubbles:true}));
+        _subjModalTargetInput.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+      closeSubjModal();
+    });
+  });
+}
+function closeSubjModal() {
+  $('#subjModalBg').classList.remove('show');
+  _subjModalTargetInput = null;
+}
+$('#subjModalClose').addEventListener('click', closeSubjModal);
+$('#subjModalBg').addEventListener('click', (e) => { if (e.target.id === 'subjModalBg') closeSubjModal(); });
+$('#subjModalSearch').addEventListener('input', (e) => {
+  const q = (e.target.value || '').toLowerCase().trim();
+  const cellSubjects = [];
+  ['A','B'].forEach(k => {
+    const t = state.timetables[k];
+    if (!t) return;
+    Object.values(t).forEach(row => Object.values(row).forEach(s => { if (s) cellSubjects.push(s); }));
+  });
+  const all = Array.from(new Set([
+    ...(state.masters.subjects || []),
+    ...cellSubjects,
+    ...state.records.map(r => r.subject).filter(Boolean)
+  ])).sort((a,b) => a.localeCompare(b,'ja'));
+  const filtered = q ? all.filter(s => s.toLowerCase().includes(q)) : all;
+  renderSubjModalList(filtered);
+});
+const _recSubjPickBtn = $('#recSubjectPickBtn');
+if (_recSubjPickBtn) _recSubjPickBtn.addEventListener('click', () => openSubjModal('recSubject'));
+
+/* ========== ソフトキーボード閉じるボタン ========== */
+function _shouldShowKbdDismiss(el) {
+  if (!el) return false;
+  const tag = (el.tagName || '').toLowerCase();
+  if (tag === 'textarea') return true;
+  if (tag === 'input') {
+    const t = (el.type || 'text').toLowerCase();
+    /* textに分類される系のみ対象。date/select等は端末側UIで完結 */
+    return ['text','search','number','tel','url','email','password'].includes(t);
+  }
+  return false;
+}
+const _kbdBtn = $('#kbdDismissBtn');
+function _refreshKbdBtn() {
+  if (!_kbdBtn) return;
+  if (_shouldShowKbdDismiss(document.activeElement)) _kbdBtn.classList.add('show');
+  else _kbdBtn.classList.remove('show');
+}
+document.addEventListener('focusin', _refreshKbdBtn);
+document.addEventListener('focusout', () => setTimeout(_refreshKbdBtn, 100));
+if (_kbdBtn) {
+  _kbdBtn.addEventListener('mousedown', (e) => e.preventDefault());
+  _kbdBtn.addEventListener('touchstart', (e) => e.preventDefault(), {passive: false});
+  _kbdBtn.addEventListener('click', () => {
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    _kbdBtn.classList.remove('show');
+  });
+}
+
 /* ========== 初期化 ========== */
 renderTimetableEditor('A');
 renderTimetableEditor('B');
@@ -3030,6 +3483,7 @@ refreshTodoCats();
 renderTodos();
 refreshDatalists();
 renderSettings();
+renderWeek();              /* 起動時の既定タブ（週間カレンダー） */
 updateHeaderStatus();
 updateTodoBadge();
 
