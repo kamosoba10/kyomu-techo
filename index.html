@@ -831,14 +831,36 @@
     border: 1px solid var(--line); border-radius: 4px;
     box-sizing: border-box;
   }
+  /* 編集フォーム: 日付欄(160px)とカテゴリ欄(130px)を横並び */
+  .todo-edit-form .te-row-meta { align-items: center; }
+  .todo-edit-form .dateph-wrap {
+    flex: 0 0 160px; max-width: 160px; min-width: 0;
+  }
   .todo-edit-form .te-cat {
-    flex: 1 1 130px; padding: 6px 10px; font-size: 13px;
+    flex: 0 0 130px; max-width: 130px; min-width: 0;
+    padding: 6px 10px; font-size: 13px;
     border: 1px solid var(--line); border-radius: 4px;
     box-sizing: border-box;
   }
   .todo-edit-form .te-due {
-    padding: 5px 8px; font-size: 13px;
+    width: 100%; max-width: 100%; box-sizing: border-box;
+    padding: 7px 10px; font-size: 13px;
+    line-height: 1.4; height: 36px;
     border: 1px solid var(--line); border-radius: 4px;
+    background: #fff; color: var(--ink); font-family: inherit;
+    -webkit-appearance: none; appearance: none;
+  }
+  .todo-edit-form .te-due-clear {
+    flex: 0 0 auto;
+    background: #fff; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 6px 10px; font-size: 12px;
+    cursor: pointer; font-family: inherit;
+    height: 36px; box-sizing: border-box;
+    white-space: nowrap;
+  }
+  .todo-edit-form .te-due-clear:hover {
+    background: #ffeeee; color: var(--red); border-color: var(--red);
   }
   .todo-edit-form .te-buttons { justify-content: flex-end; }
   .todo-edit-form .btn.small {
@@ -1281,7 +1303,7 @@
       <h2>todoリスト</h2>
       <form id="todoForm" class="todo-add" onsubmit="return false;">
         <input id="todoTitle" type="text" placeholder="やることを入力" required>
-        <span class="dateph-wrap"><input id="todoDue" type="date" title="期限（任意）"><span class="dateph-label">期限（任意）</span></span>
+        <span class="dateph-wrap"><input id="todoDue" type="date" title="日付（任意）"><span class="dateph-label">日付（任意）</span></span>
         <input id="todoCategory" type="text" placeholder="カテゴリ（任意）" list="todoCatList">
         <datalist id="todoCatList"></datalist>
         <span class="todo-color-pick" id="todoColorPick" title="文字色を選ぶ">
@@ -3234,10 +3256,11 @@ function renderTodos() {
               <input type="text" class="te-title" data-id="${t.id}" value="${escapeHtml(t.title)}" placeholder="やることを入力">
             </div>
             <div class="te-row te-row-meta">
-              <span class="dateph-wrap${t.due?' has-value':''}${_isIOSDevice?'':' no-hint'}" style="flex:0 1 auto;">
+              <span class="dateph-wrap${t.due?' has-value':''}${_isIOSDevice?'':' no-hint'}">
                 <input type="date" class="te-due" data-id="${t.id}" value="${escapeHtml(t.due||'')}">
-                <span class="dateph-label">期限（任意）</span>
+                <span class="dateph-label">日付（任意）</span>
               </span>
+              <button type="button" class="te-due-clear" data-id="${t.id}" title="日付をクリア">日付クリア</button>
               <input type="text" class="te-cat" data-id="${t.id}" value="${escapeHtml(t.category||'')}" placeholder="カテゴリ（任意）" list="todoCatList">
               <span class="todo-color-pick te-color" data-id="${t.id}" title="文字色">
                 <span class="todo-color-cur" style="background:${escapeHtml(color)};"></span>
@@ -3313,6 +3336,14 @@ function renderTodos() {
     if (dueInp) {
       dueInp.addEventListener('input', () => syncDatePh(dueInp));
       dueInp.addEventListener('change', () => syncDatePh(dueInp));
+    }
+    /* 日付クリアボタン */
+    const dueClearBtn = form.querySelector('.te-due-clear');
+    if (dueClearBtn && dueInp) {
+      dueClearBtn.addEventListener('click', () => {
+        dueInp.value = '';
+        syncDatePh(dueInp);
+      });
     }
     /* 保存 */
     form.querySelector('.te-save').addEventListener('click', () => {
