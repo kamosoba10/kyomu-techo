@@ -618,10 +618,11 @@
   }
   .kbd-dismiss.show { display: inline-block; }
   /* iPad の date input は値が空のときプレースホルダーが見えないことがあるため、
-     ヒントラベルを入力欄の下に小さく重ねて表示する。Macでは no-hint クラスで非表示。 */
+     入力欄の上にヒントラベルをオーバーレイ表示する（box-heightを増やさない）。
+     - 値があれば自動非表示
+     - Mac では JSが no-hint クラスを付けて非表示（ブラウザ標準の「年/月/日」を使う） */
   .dateph-wrap {
-    display: flex; flex-direction: column;
-    align-items: stretch; gap: 1px;
+    display: block;
     position: relative;
     box-sizing: border-box;
   }
@@ -631,10 +632,12 @@
     min-width: 0;
   }
   .dateph-wrap > .dateph-label {
-    color: var(--muted); font-size: 10px;
-    line-height: 1.2; padding: 0 2px;
+    position: absolute;
+    left: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; color: var(--muted);
+    pointer-events: none;
     white-space: nowrap;
-    overflow: hidden; text-overflow: ellipsis;
+    background: transparent;
   }
   .dateph-wrap.has-value > .dateph-label { display: none; }
   .dateph-wrap.no-hint > .dateph-label { display: none; }
@@ -718,10 +721,9 @@
   }
   .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
-  /* Todo追加フォーム — iPad縦置き(768/810/834px)では完全縦積み、横置き&Mac(1000px〜)で横並び。
-     2列レイアウトの幅不足による重なりを物理的に避ける */
+  /* Todo追加フォーム — iPad縦置き・Macどちらでも 期限(短め固定幅)・カテゴリ(残り幅) を横並び */
   .todo-add {
-    display: grid; gap: 10px; margin-bottom: 12px;
+    display: grid; gap: 8px; margin-bottom: 12px;
     grid-template-columns: 1fr;
   }
   .todo-add > * { min-width: 0; box-sizing: border-box; width: 100%; }
@@ -730,12 +732,13 @@
   .todo-add #todoColorPick { width: auto; justify-self: start; }
   .todo-add #todoAdd { width: auto; justify-self: end; }
   .todo-add .dateph-wrap { width: 100%; }
-  /* iPad横置き(1024px)以上で初めて横並びを許可 */
-  @media (min-width: 1000px) {
+  /* スマホサイズより広い画面（iPad縦置き含む）で 2行構成 */
+  @media (min-width: 600px) {
     .todo-add {
-      grid-template-columns: 1fr 1fr auto auto;
+      /* [期限:160px固定] [カテゴリ:残り幅] [色:auto] [追加:auto] */
+      grid-template-columns: 160px 1fr auto auto;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
     .todo-add #todoTitle { grid-column: 1 / -1; }
     .todo-add .dateph-wrap { grid-column: 1 / 2; }
