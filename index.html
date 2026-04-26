@@ -659,12 +659,7 @@
   }
   .todo-color-popover .swatch:hover { border-color: var(--accent); }
   .todo-color-popover .swatch.cur { border-color: var(--accent); border-width: 3px; }
-  .todo-item .todo-color-mini {
-    display: inline-block; width: 14px; height: 14px;
-    border-radius: 50%; border: 1px solid #ccc;
-    cursor: pointer; flex-shrink: 0;
-    margin-right: 4px;
-  }
+  /* 色丸は廃止。文字色のみで識別する */
   /* 曜日ごとの時限数グリッド */
   .day-periods-grid {
     border-collapse: collapse;
@@ -717,21 +712,28 @@
   }
   .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
-  /* Todo */
+  /* Todo追加フォーム — 縦置きiPad/Mac両対応の堅牢なレイアウト */
   .todo-add {
-    display: flex; flex-wrap: wrap; gap: 8px;
-    align-items: center;
-    margin-bottom: 12px;
+    display: grid; gap: 8px; margin-bottom: 12px;
+    grid-template-columns: 1fr;     /* 既定: 縦積み（狭い画面・iPad縦置き） */
   }
-  .todo-add > * { min-width: 0; box-sizing: border-box; }
-  .todo-add #todoTitle    { flex: 1 1 220px; }
-  .todo-add .dateph-wrap  { flex: 0 1 auto; }
-  .todo-add #todoCategory { flex: 1 1 130px; }
-  .todo-add .todo-color-pick { flex: 0 0 auto; }
-  .todo-add #todoAdd      { flex: 0 0 auto; }
-  /* iPad縦置きや狭い画面では追加ボタンを次行に配置する必要があれば自然に折り返す */
-  @media (max-width: 800px) {
-    .todo-add #todoTitle { flex: 1 1 100%; }
+  .todo-add > * { min-width: 0; box-sizing: border-box; width: 100%; }
+  .todo-add input[type="text"],
+  .todo-add input[type="date"] { width: 100%; }
+  .todo-add #todoColorPick { width: auto; justify-self: start; }
+  .todo-add #todoAdd { width: auto; justify-self: end; }
+  .todo-add .dateph-wrap { width: 100%; }
+  /* 中サイズ（普通のMac/iPad横置き）では2列、ボタン類は右端 */
+  @media (min-width: 720px) {
+    .todo-add {
+      grid-template-columns: 1fr 1fr auto auto;
+      align-items: center;
+    }
+    .todo-add #todoTitle { grid-column: 1 / -1; }     /* タイトルは1行使う */
+    .todo-add .dateph-wrap { grid-column: 1 / 2; }
+    .todo-add #todoCategory { grid-column: 2 / 3; }
+    .todo-add #todoColorPick { grid-column: 3 / 4; justify-self: center; }
+    .todo-add #todoAdd { grid-column: 4 / 5; }
   }
   .todo-filters {
     display: flex; gap: 10px; margin-bottom: 12px;
@@ -1021,7 +1023,7 @@
 <header>
   <h1>教務手帳<span class="header-year" id="headerYear">—</span></h1>
   <div class="h-meta">
-    <span class="h-todo zero" id="headerTodo">未完了TODO 0</span>
+    <span class="h-todo zero" id="headerTodo">未完了todo 0</span>
     <span class="h-savestat dirty" id="headerSaveStat" title="最終保存からの経過時間">未保存</span>
     <button class="h-syncbtn" id="headerImportBtn" type="button" title="JSONをインポート（読込）">読込</button>
     <button class="h-syncbtn primary" id="headerExportBtn" type="button" title="JSONをエクスポート（保存）">保存</button>
@@ -1031,7 +1033,7 @@
 <nav class="tabs">
   <button data-tab="week" class="active">週間カレンダー</button>
   <button data-tab="records">授業記録</button>
-  <button data-tab="todos">TODO <span class="badge" id="todoBadge" style="display:none;">0</span></button>
+  <button data-tab="todos">todo <span class="badge" id="todoBadge" style="display:none;">0</span></button>
   <button data-tab="calendar">月間カレンダー</button>
   <button data-tab="settings">設定</button>
 </nav>
@@ -1192,7 +1194,7 @@
         <div class="form-row one">
           <div class="field">
             <label>進度</label>
-            <textarea id="recProgress" placeholder="扱った単元・範囲・進んだ所など（例: 第3章 導関数 例題5まで）"></textarea>
+            <textarea id="recProgress" placeholder="扱った単元、進んだ範囲など"></textarea>
           </div>
         </div>
         <div class="form-row one">
@@ -1237,7 +1239,7 @@
   <!-- ===== TODO ===== -->
   <section id="view-todos" class="view">
     <div class="panel">
-      <h2>TODOリスト</h2>
+      <h2>todoリスト</h2>
       <form id="todoForm" class="todo-add" onsubmit="return false;">
         <input id="todoTitle" type="text" placeholder="やることを入力" required>
         <span class="dateph-wrap"><input id="todoDue" type="date" title="期限（任意）"><span class="dateph-label">期限（任意）</span></span>
@@ -1276,7 +1278,7 @@
     <div class="panel">
       <h2>年度の管理</h2>
       <div class="help" style="margin-bottom:10px;">
-        年度ごとに時間割・授業記録・カレンダー割当・予定・TODO・科目マスタが独立して保存されます。年度を切り替えると、その年度のデータだけが画面に表示されます。
+        年度ごとに時間割・授業記録・カレンダー割当・予定・todo・科目マスタが独立して保存されます。年度を切り替えると、その年度のデータだけが画面に表示されます。
       </div>
       <div class="year-bar">
         <span class="year-label">現在の年度:</span>
@@ -1286,7 +1288,7 @@
         <button class="btn secondary small" id="yearDelete">この年度を削除</button>
       </div>
       <div class="help">
-        新規年度を作成するとき、現在の年度の時間割・科目マスタ・カテゴリ設定をコピーするか選べます。記録・カレンダー割当・予定・TODOはコピーされません。
+        新規年度を作成するとき、現在の年度の時間割・科目マスタ・カテゴリ設定をコピーするか選べます。記録・カレンダー割当・予定・todoはコピーされません。
       </div>
     </div>
     <div class="panel">
@@ -1735,7 +1737,7 @@ function updateHeaderStatus() {
   const td = state.todos.filter(t => !t.done).length;
   const tEl = $('#headerTodo');
   if (tEl) {
-    tEl.textContent = `未完了TODO ${td}`;
+    tEl.textContent = `未完了todo ${td}`;
     tEl.classList.toggle('zero', td === 0);
   }
   const hy = $('#headerYear');
@@ -2973,7 +2975,8 @@ $('#recTodoMemo').addEventListener('input', () => {
 });
 
 /* ========== TODO ========== */
-const TODO_COLORS = ['#222222','#e74c3c','#e67e22','#f1c40f','#27ae60','#3498db','#8e44ad'];
+/* 文字色は黒・赤・青の3色のみ */
+const TODO_COLORS = ['#222222','#e74c3c','#3498db'];
 let _todoNewColor = TODO_COLORS[0];
 /* 現在インライン編集中のTODO ID（nullなら編集中なし） */
 let _editingTodoId = null;
@@ -2993,7 +2996,7 @@ function addTodo(e) {
   $('#todoDue').value = '';
   syncDatePh($('#todoDue'));
   save(); renderTodos(); refreshTodoCats();
-  toast('TODOを追加しました');
+  toast('todoを追加しました');
 }
 $('#todoForm').addEventListener('submit', addTodo);
 $('#todoAdd').addEventListener('click', addTodo);
@@ -3022,9 +3025,8 @@ if (!_isIOSDevice) {
   document.querySelectorAll('.dateph-wrap').forEach(w => w.classList.add('no-hint'));
 }
 
-/* TODO追加フォームの色ピッカー */
+/* todo色ピッカー（ポップオーバー） — ビューポート端で見切れないよう右端を調整 */
 function showColorPopover(anchor, currentColor, onPick) {
-  /* 既存のポップオーバーを除去 */
   document.querySelectorAll('.todo-color-popover').forEach(x => x.remove());
   const pop = document.createElement('div');
   pop.className = 'todo-color-popover show';
@@ -3032,9 +3034,22 @@ function showColorPopover(anchor, currentColor, onPick) {
     `<div class="swatch ${c===currentColor?'cur':''}" style="background:${c};" data-c="${c}"></div>`
   ).join('');
   document.body.appendChild(pop);
+  /* 配置調整: 右端からはみ出すなら左にずらす、下にはみ出すならアンカーの上に出す */
   const r = anchor.getBoundingClientRect();
-  pop.style.left = (window.scrollX + r.left) + 'px';
-  pop.style.top  = (window.scrollY + r.bottom + 4) + 'px';
+  const popW = pop.offsetWidth || 140;
+  const popH = pop.offsetHeight || 44;
+  const margin = 8;
+  let left = window.scrollX + r.left;
+  if (left + popW > window.scrollX + window.innerWidth - margin) {
+    left = window.scrollX + window.innerWidth - popW - margin;
+  }
+  if (left < window.scrollX + margin) left = window.scrollX + margin;
+  let top = window.scrollY + r.bottom + 4;
+  if (top + popH > window.scrollY + window.innerHeight - margin) {
+    top = window.scrollY + r.top - popH - 4;
+  }
+  pop.style.left = left + 'px';
+  pop.style.top  = top + 'px';
   pop.querySelectorAll('.swatch').forEach(s => {
     s.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -3042,7 +3057,6 @@ function showColorPopover(anchor, currentColor, onPick) {
       pop.remove();
     });
   });
-  /* クリック外で閉じる */
   setTimeout(() => {
     const closer = (e) => {
       if (!pop.contains(e.target) && e.target !== anchor && !anchor.contains(e.target)) {
@@ -3099,8 +3113,8 @@ function renderTodos() {
   if (list.length === 0) {
     ul.innerHTML = '';
     empty.style.display = 'block';
-    empty.textContent = filter === 'done' ? '完了済みのTODOはありません。'
-      : (filter === 'open' ? '未完了のTODOはありません。お疲れさまでした！' : 'TODOはありません。');
+    empty.textContent = filter === 'done' ? '完了済みのtodoはありません。'
+      : (filter === 'open' ? '未完了のtodoはありません。お疲れさまでした！' : 'todoはありません。');
     return;
   }
   empty.style.display = 'none';
@@ -3143,7 +3157,6 @@ function renderTodos() {
     return `
       <li class="todo-item ${t.done?'done':''}" data-id="${t.id}">
         <input type="checkbox" ${t.done?'checked':''} data-id="${t.id}">
-        <span class="todo-color-mini" data-id="${t.id}" style="background:${escapeHtml(color)};" title="文字色を変更"></span>
         <div class="todo-body">
           <div class="todo-title" style="color:${escapeHtml(color)};">${escapeHtml(t.title)}</div>
           <div class="todo-meta">
@@ -3155,19 +3168,6 @@ function renderTodos() {
         <button class="todo-del" data-id="${t.id}" title="削除">×</button>
       </li>`;
   }).join('');
-  /* 各TODOの文字色を変更するスウォッチ（表示モード） */
-  ul.querySelectorAll('.todo-color-mini').forEach(sw => {
-    sw.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const id = sw.dataset.id;
-      const t = state.todos.find(x => x.id === id);
-      if (!t) return;
-      showColorPopover(sw, t.color || TODO_COLORS[0], (c) => {
-        t.color = c;
-        save(); renderTodos();
-      });
-    });
-  });
   ul.querySelectorAll('input[type="checkbox"]').forEach(cb => {
     cb.addEventListener('change', () => toggleTodo(cb.dataset.id));
   });
@@ -3213,7 +3213,7 @@ function renderTodos() {
       t.category = form.querySelector('.te-cat').value.trim();
       _editingTodoId = null;
       save(); renderTodos(); refreshTodoCats();
-      toast('TODOを更新しました');
+      toast('todoを更新しました');
     });
     /* キャンセル */
     form.querySelector('.te-cancel').addEventListener('click', () => {
@@ -3235,7 +3235,7 @@ function toggleTodo(id) {
   save(); renderTodos();
 }
 function deleteTodo(id) {
-  if (!confirm('このTODOを削除しますか？')) return;
+  if (!confirm('このtodoを削除しますか？')) return;
   state.todos = state.todos.filter(t => t.id !== id);
   save(); renderTodos(); refreshTodoCats();
 }
@@ -3252,7 +3252,7 @@ $('#todoSort').addEventListener('change', renderTodos);
 $('#todoFilterCat').addEventListener('change', renderTodos);
 $('#todoClearDone').addEventListener('click', () => {
   const doneCount = state.todos.filter(t => t.done).length;
-  if (doneCount === 0) { toast('完了済みのTODOはありません'); return; }
+  if (doneCount === 0) { toast('完了済みのtodoはありません'); return; }
   if (!confirm(`完了済みの${doneCount}件を削除しますか？`)) return;
   state.todos = state.todos.filter(t => !t.done);
   save(); renderTodos(); refreshTodoCats();
@@ -3386,7 +3386,7 @@ $('#yearDelete').addEventListener('click', () => {
     alert('最低1つの年度が必要です。削除できません。');
     return;
   }
-  if (!confirm(`「${cur}年度」のデータを完全に削除します。\n時間割・記録・カレンダー・TODOなど全て失われます。本当によろしいですか？`)) return;
+  if (!confirm(`「${cur}年度」のデータを完全に削除します。\n時間割・記録・カレンダー・todoなど全て失われます。本当によろしいですか？`)) return;
   if (!confirm(`本当に削除しますか？元には戻せません。\n（バックアップは設定タブの「JSONにエクスポート」から作成できます）`)) return;
   deleteYearByKey(cur);
   switchYear(allData.currentYear);
