@@ -625,18 +625,22 @@
     display: block;
     position: relative;
     box-sizing: border-box;
+    overflow: hidden;
   }
   .dateph-wrap > input[type="date"] {
     width: 100%; max-width: 100%;
     box-sizing: border-box;
     min-width: 0;
+    /* iOS Safari は date input に独自の最小幅を持つことがあるため、明示的に上書き */
+    flex: 0 1 auto;
   }
   .dateph-wrap > .dateph-label {
     position: absolute;
-    left: 10px; top: 50%; transform: translateY(-50%);
+    left: 10px; right: 30px; top: 50%; transform: translateY(-50%);
     font-size: 13px; color: var(--muted);
     pointer-events: none;
     white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
     background: transparent;
   }
   .dateph-wrap.has-value > .dateph-label { display: none; }
@@ -721,7 +725,7 @@
   }
   .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 
-  /* Todo追加フォーム — iPad縦置き・Macどちらでも 期限(短め固定幅)・カテゴリ(残り幅) を横並び */
+  /* Todo追加フォーム — 期限・カテゴリは両方コンパクトな固定幅で横並び（iPad縦置きでも確実に重ならない） */
   .todo-add {
     display: grid; gap: 8px; margin-bottom: 12px;
     grid-template-columns: 1fr;
@@ -732,19 +736,20 @@
   .todo-add #todoColorPick { width: auto; justify-self: start; }
   .todo-add #todoAdd { width: auto; justify-self: end; }
   .todo-add .dateph-wrap { width: 100%; }
-  /* スマホサイズより広い画面（iPad縦置き含む）で 2行構成 */
+  /* スマホサイズより広い画面（iPad縦置き〜Mac）で 2行構成・両欄コンパクト固定幅 */
   @media (min-width: 600px) {
     .todo-add {
-      /* [期限:160px固定] [カテゴリ:残り幅] [色:auto] [追加:auto] */
-      grid-template-columns: 160px 1fr auto auto;
+      /* [期限:140px] [カテゴリ:170px] [色:auto] [追加:auto] [余り] */
+      grid-template-columns: 140px 170px auto auto 1fr;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
     .todo-add #todoTitle { grid-column: 1 / -1; }
-    .todo-add .dateph-wrap { grid-column: 1 / 2; }
+    .todo-add .dateph-wrap { grid-column: 1 / 2; overflow: hidden; }
     .todo-add #todoCategory { grid-column: 2 / 3; }
     .todo-add #todoColorPick { grid-column: 3 / 4; justify-self: center; }
     .todo-add #todoAdd { grid-column: 4 / 5; }
+    /* 残り(5列目)は空白として確保。grid-template-columns末尾の 1fr が吸収 */
   }
   .todo-filters {
     display: flex; gap: 10px; margin-bottom: 12px;
