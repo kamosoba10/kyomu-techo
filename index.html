@@ -717,6 +717,16 @@
     font-size: 12px; color: var(--muted); margin-bottom: 4px;
   }
   .record-item .title { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+  .record-item .rec-done-badge {
+    background: var(--blue); color: #fff;
+    padding: 1px 7px; border-radius: 9px;
+    font-size: 11px; font-weight: 700;
+  }
+  .record-item .rec-pending-badge {
+    background: #f3f3f3; color: var(--muted);
+    padding: 1px 7px; border-radius: 9px;
+    font-size: 11px;
+  }
   .record-item .snippet {
     font-size: 12px; color: var(--muted);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -1273,7 +1283,8 @@
           </div>
         </div>
         <div class="btn-row">
-          <button class="btn" id="recSave">保存</button>
+          <button class="btn" id="recComplete" title="授業を実施済みとして記録（週間カレンダーに✓が付きます）">✓ 実施済み</button>
+          <button class="btn secondary" id="recSave" title="授業内容を登録（週間カレンダーには✓は付きません）">授業を登録</button>
           <button class="btn secondary" id="recNew">新規</button>
           <button class="btn danger" id="recDelete">記録を削除</button>
         </div>
@@ -1403,6 +1414,13 @@
         <button class="btn secondary" onclick="copyPattern('A','B')">時間割Bへコピー</button>
         <button class="btn secondary" onclick="copyPattern('B','A')">時間割Bから取り込み</button>
       </div>
+      <div class="settings-row" style="margin-bottom:8px;">
+        <div class="field">
+          <label>適用開始日（この日以降にこの時間割を適用）</label>
+          <input id="ttAStart" type="date">
+        </div>
+        <button type="button" class="btn secondary small" id="ttAStartClear" title="適用開始日を解除（全日に適用）">クリア</button>
+      </div>
       <table class="timetable" id="ttA-grid"></table>
     </div>
     <div class="panel pat-B">
@@ -1415,6 +1433,13 @@
         <button class="btn secondary" onclick="clearPattern('B')">内容を消去</button>
         <button class="btn secondary" onclick="copyPattern('B','A')">時間割Aへコピー</button>
         <button class="btn secondary" onclick="copyPattern('A','B')">時間割Aから取り込み</button>
+      </div>
+      <div class="settings-row" style="margin-bottom:8px;">
+        <div class="field">
+          <label>適用開始日（この日以降にこの時間割を適用）</label>
+          <input id="ttBStart" type="date">
+        </div>
+        <button type="button" class="btn secondary small" id="ttBStartClear" title="適用開始日を解除（全日に適用）">クリア</button>
       </div>
       <table class="timetable" id="ttB-grid"></table>
     </div>
@@ -1554,8 +1579,8 @@ function defaultData() {
       dayPeriods: { 0: 6, 1: 6, 2: 6, 3: 6, 4: 6, 5: 0, 6: 0 }
     },
     timetables: {
-      A: { cells: {}, specials: { before: {}, lunch: {}, after: {} } },
-      B: { cells: {}, specials: { before: {}, lunch: {}, after: {} } }
+      A: { cells: {}, specials: { before: {}, lunch: {}, after: {} }, startDate: '' },
+      B: { cells: {}, specials: { before: {}, lunch: {}, after: {} }, startDate: '' }
     },
     dayAssignments: {},
     defaultPattern: '',
@@ -1610,8 +1635,8 @@ function migrate(d) {
     const merged = Object.assign(base, d, {
       config: Object.assign(base.config, d.config),
       timetables: {
-        A: Object.assign({cells:{}, specials:{before:{},lunch:{},after:{}}}, d.timetables.A),
-        B: Object.assign({cells:{}, specials:{before:{},lunch:{},after:{}}}, d.timetables.B || base.timetables.B)
+        A: Object.assign({cells:{}, specials:{before:{},lunch:{},after:{}}, startDate:''}, d.timetables.A),
+        B: Object.assign({cells:{}, specials:{before:{},lunch:{},after:{}}, startDate:''}, d.timetables.B || base.timetables.B)
       },
       masters: Object.assign(base.masters, d.masters || {}),
       dayAssignments: d.dayAssignments || {},
@@ -1621,7 +1646,7 @@ function migrate(d) {
       dayPatternOverrides: d.dayPatternOverrides || {},
       holidays: d.holidays || {},
       shortDays: d.shortDays || {},
-      records: d.records || [],
+      records: (d.records || []).map(r => Object.assign({ done: true }, r, { done: r.done == null ? true : r.done })),
       todos: d.todos || [],
       categoryColors: Object.assign({}, DEFAULT_CATEGORY_COLORS, d.categoryColors || {}),
       subjectCategories: d.subjectCategories || {},
@@ -1653,7 +1678,8 @@ function migrate(d) {
     };
     base.timetables.A = { cells: old.cells||{}, specials: Object.assign({before:{},lunch:{},after:{}}, old.specials||{}) };
   }
-  base.records = d.records || [];
+  /* 既存記録は done フラグがなければ true 扱い（従来は保存=実施済みだったため） */
+  base.records = (d.records || []).map(r => Object.assign({}, r, { done: r.done == null ? true : r.done }));
   base.todos = d.todos || [];
   base.masters = Object.assign(base.masters, d.masters || {});
   base.dayAssignments = d.dayAssignments || {};
@@ -2397,7 +2423,8 @@ function renderWeek() {
       }
       const eff = getEffectiveSubject(iso, p);
       if (eff.subject) {
-        const hasRecord = state.records.some(r => r.date === iso && r.period === p && r.subject === eff.subject);
+        /* ✓マーク条件: 「実施済み」ボタンが押された記録が存在 */
+        const hasRecord = state.records.some(r => r.date === iso && r.period === p && r.subject === eff.subject && r.done === true);
         const recCls = hasRecord ? ' has-record' : '';
         const ovMark = eff.isOverride ? '<span class="wk-override-mark" title="この日だけの科目">※</span>' : '';
         const col = getSubjectColor(eff.subject);
@@ -2486,11 +2513,22 @@ function getEffectivePeriodCount(iso) {
   return state.config.dayPeriods[wd] != null ? state.config.dayPeriods[wd] : (state.config.periods || 6);
 }
 
+/* 時間割の適用開始日が設定されている場合、その日より前は当該時間割を適用しない */
+function isBeforeTimetableStart(iso, key) {
+  const tt = state.timetables && state.timetables[key];
+  if (!tt) return false;
+  const sd = tt.startDate || '';
+  if (!sd) return false;
+  return iso < sd;
+}
+
 /* 日付・時限ごとの授業科目オーバーライド取得・保存 */
 function getPatternSubject(iso, p) {
   const effective = getEffectivePattern(iso);
   if (!effective) return '';
   if (effective === 'O') return ''; // 「その他」は授業なし
+  /* 適用開始日より前は時間割を適用しない（dayOverrides にスナップショットがあればそちらが使われる） */
+  if (isBeforeTimetableStart(iso, effective)) return '';
   const dt = parseDate(iso);
   if (!dt) return '';
   /* 日替わり時間割（曜日入替＋時限範囲指定で時限を再マッピング） */
@@ -2562,8 +2600,9 @@ function countPendingClasses() {
       if (!subject) continue;
       /* 期間内に時間割上で登場した科目は、残り0でも一覧に表示するため先に0で登録 */
       if (!(subject in counts)) counts[subject] = 0;
-      const hasRecord = state.records.some(r => r.date === iso && r.period === p && r.subject === subject);
-      if (hasRecord) continue;
+      /* 残り授業コマ数: 「実施済み」フラグが立った記録のみを「実施済み」と数える */
+      const hasDoneRecord = state.records.some(r => r.date === iso && r.period === p && r.subject === subject && r.done === true);
+      if (hasDoneRecord) continue;
       counts[subject]++;
     }
   }
@@ -2646,6 +2685,36 @@ function setSubjectOverride(iso, p, subject) {
     if (!state.dayOverrides[iso]) state.dayOverrides[iso] = {};
     state.dayOverrides[iso]['p'+p] = subject;
   }
+  save();
+}
+
+/* 時間割の適用開始日を設定/変更/解除する。
+   - 設定/変更: 新startDate より前で当該パターンが割り当てられている日付の現在の科目をスナップショット
+   - 解除（クリア）: 当該パターンが割り当てられている全ての日付をスナップショット（現在の表示を維持） */
+function applyTimetableStartDate(key, newStartDate) {
+  const tt = state.timetables[key];
+  if (!tt) return;
+  const oldStart = tt.startDate || '';
+  newStartDate = newStartDate || '';
+  if (oldStart === newStartDate) return;
+
+  /* 新startDate が空（クリア）なら全日付、そうでなければ新startDate より前の日付をスナップショット対象とする */
+  Object.entries(state.dayAssignments || {}).forEach(([iso, pat]) => {
+    if (pat !== key) return;
+    if (newStartDate && iso >= newStartDate) return;   /* 解除時は全日対象、設定時は過去のみ */
+    if (!state.dayOverrides[iso]) state.dayOverrides[iso] = {};
+    const periodCount = getEffectivePeriodCount(iso) || (state.config.periods || 6);
+    for (let p = 1; p <= periodCount; p++) {
+      const ovKey = 'p' + p;
+      if (Object.prototype.hasOwnProperty.call(state.dayOverrides[iso], ovKey)) continue;
+      /* 現在の科目（startDate 変更前）をキャプチャ。空セルは何もしない */
+      const subj = getPatternSubject(iso, p);
+      if (subj) state.dayOverrides[iso][ovKey] = subj;
+    }
+    if (Object.keys(state.dayOverrides[iso]).length === 0) delete state.dayOverrides[iso];
+  });
+
+  tt.startDate = newStartDate;
   save();
 }
 
@@ -2809,6 +2878,12 @@ function getFilteredRecords() {
   const subj = ($('#recFilterSubject') ? $('#recFilterSubject').value : '');
   const sort = $('#recSort').value;
   let list = state.records.slice();
+  /* 週間カレンダーから削除されたコマの記録は表示しない */
+  list = list.filter(r => {
+    if (!r.date || !r.period) return true;
+    const eff = getEffectiveSubject(r.date, r.period);
+    return !eff.isDeleted;
+  });
   if (subj) list = list.filter(r => r.subject === subj);
   if (q) {
     list = list.filter(r =>
@@ -2848,10 +2923,12 @@ function renderRecords() {
     const copyBtn = hasProgress
       ? `<button class="rec-copy-btn" data-id="${r.id}" title="この進度を編集中の進度欄にコピー">進度をコピー</button>`
       : '';
+    const doneBadge = r.done ? '<span class="rec-done-badge">✓ 実施済</span>' : '<span class="rec-pending-badge">未実施</span>';
     return `
       <div class="record-item ${sel}" data-id="${r.id}">
         <div class="top">
           <span>${escapeHtml(r.date||'')} ・ ${r.period||''}限</span>
+          ${doneBadge}
         </div>
         <div class="title">${escapeHtml(r.subject||'(科目未設定)')}</div>
         <div class="snippet">${escapeHtml((r.progress||'').slice(0,80))}</div>
@@ -2954,8 +3031,18 @@ function refreshSubjectMemo() {
   ta.value = memos[subject] || '';
 }
 
-$('#recSave').addEventListener('click', () => {
+/* 授業記録の保存共通処理。markDone=true なら done=true に、false/未指定なら既存値を維持 */
+function saveCurrentRecord(markDone) {
   const id = $('#recId').value || uid();
+  const existing = state.records.find(r => r.id === id);
+  /* done フラグの決定:
+     - markDone=true → 必ず true に
+     - markDone=false（明示的に未実施扱い）→ false へリセットしない（既存値を維持。新規ならfalse）
+     - markDone未指定 → 既存値を維持（新規ならfalse） */
+  let doneFlag;
+  if (markDone === true) doneFlag = true;
+  else if (existing && existing.done) doneFlag = true;
+  else doneFlag = false;
   const rec = {
     id,
     date: $('#recDate').value,
@@ -2963,18 +3050,18 @@ $('#recSave').addEventListener('click', () => {
     subject: $('#recSubject').value.trim(),
     progress: $('#recProgress').value.trim(),
     note: $('#recNote').value.trim(),
+    done: doneFlag,
     updated: new Date().toISOString()
   };
   if (!rec.date || !rec.period) {
     toast('週間カレンダーまたは記録一覧から授業を選んでください');
-    return;
+    return false;
   }
   const idx = state.records.findIndex(r => r.id === id);
   if (idx >= 0) state.records[idx] = rec;
   else state.records.push(rec);
   $('#recId').value = id;
-  // Sync week view override: if the typed subject differs from the pattern-based subject,
-  // record an override so the week view reflects the edit. If it matches, clear any override.
+  // 週間カレンダーの override 同期
   if (rec.date && rec.period && rec.subject) {
     const patSub = getPatternSubject(rec.date, rec.period);
     if (patSub === rec.subject) {
@@ -2984,7 +3071,16 @@ $('#recSave').addEventListener('click', () => {
     }
   }
   save(); renderRecords(); refreshDatalists(); renderExamCountPanel();
-  toast('保存しました');
+  return true;
+}
+
+$('#recSave').addEventListener('click', () => {
+  /* 授業を登録 — done フラグは触らない（既存値維持・新規はfalse） */
+  if (saveCurrentRecord(undefined)) toast('授業を登録しました');
+});
+$('#recComplete').addEventListener('click', () => {
+  /* 実施済み — done=true にして保存。週間カレンダーに✓が付く */
+  if (saveCurrentRecord(true)) toast('実施済みとして記録しました ✓');
 });
 $('#recDeletePeriod').addEventListener('click', () => {
   const date = $('#recDate').value;
@@ -3430,6 +3526,9 @@ function renderSettings() {
   lunchSel.value = Math.min(cfg.lunchAfter || 0, cfg.periods - 1);
   $('#masterSubjects').value = (state.masters.subjects||[]).join(', ');
   $('#cfgExamDate').value = state.examDate || '';
+  /* 時間割A/Bの適用開始日 */
+  if ($('#ttAStart')) $('#ttAStart').value = (state.timetables.A && state.timetables.A.startDate) || '';
+  if ($('#ttBStart')) $('#ttBStart').value = (state.timetables.B && state.timetables.B.startDate) || '';
   renderDayPeriodsGrid();
   renderCategoryGrid();
 }
@@ -3588,6 +3687,29 @@ $('#cfgExamClear').addEventListener('click', () => {
   $('#cfgExamDate').value = '';
   save();
   toast('基準日をクリアしました');
+});
+
+/* 時間割の適用開始日: 入力/変更時にスナップショットを作成 */
+['A','B'].forEach(key => {
+  const inp = $('#tt' + key + 'Start');
+  const clr = $('#tt' + key + 'StartClear');
+  if (inp) {
+    inp.addEventListener('change', (e) => {
+      applyTimetableStartDate(key, e.target.value || '');
+      if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+      renderCalendar();
+      toast(e.target.value ? `時間割${key}の適用開始日を設定しました` : `時間割${key}の適用開始日を解除しました`);
+    });
+  }
+  if (clr) {
+    clr.addEventListener('click', () => {
+      applyTimetableStartDate(key, '');
+      if (inp) inp.value = '';
+      if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+      renderCalendar();
+      toast(`時間割${key}の適用開始日を解除しました`);
+    });
+  }
 });
 
 $('#masterSave').addEventListener('click', () => {
