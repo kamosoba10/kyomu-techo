@@ -158,6 +158,55 @@
   .info-bar.pat-B { background: var(--pat-b-bg); border-left-color: var(--pat-b); }
 
   /* Timetable grid */
+  .tt-save-bar {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--blue-soft);
+    border: 1px solid #cfdcec;
+    border-radius: 6px;
+    display: flex; gap: 10px; align-items: center;
+    flex-wrap: wrap;
+  }
+  .tt-save-bar .tt-dirty-ind {
+    display: none;
+    color: var(--red); font-weight: 700; font-size: 12px;
+    background: #ffe5e5; padding: 3px 9px; border-radius: 10px;
+    margin-right: auto;
+  }
+  /* セクション別の保存バー */
+  .section-save-bar {
+    margin-top: 12px; padding: 8px 12px;
+    background: var(--blue-soft);
+    border: 1px solid #cfdcec; border-radius: 6px;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .section-save-bar .section-dirty-ind {
+    display: none;
+    color: var(--red); font-weight: 700; font-size: 11px;
+    background: #ffe5e5; padding: 3px 9px; border-radius: 10px;
+    margin-right: auto;
+  }
+  .section-save-bar .btn { padding: 6px 14px; font-size: 13px; }
+  /* 考査対象期間テーブル */
+  .exam-periods-grid {
+    border-collapse: collapse; width: 100%;
+  }
+  .exam-periods-grid th, .exam-periods-grid td {
+    border: 1px solid var(--line); padding: 6px 8px;
+    font-size: 12px; vertical-align: middle;
+  }
+  .exam-periods-grid th { background: #f4f4f4; font-weight: 600; }
+  .exam-periods-grid input[type="text"], .exam-periods-grid input[type="date"] {
+    width: 100%; box-sizing: border-box; padding: 5px 8px; font-size: 13px;
+    border: 1px solid var(--line); border-radius: 3px;
+  }
+  .exam-periods-grid .ep-del {
+    background: none; border: 1px solid var(--line); border-radius: 4px;
+    color: var(--red); cursor: pointer; padding: 4px 8px;
+    font-size: 11px; font-family: inherit;
+  }
+  .exam-periods-grid .ep-del:hover { background: #ffeeee; }
+  .exam-periods-grid .ep-empty { text-align: center; color: var(--muted); padding: 12px; }
   .tt-controls {
     display: flex; gap: 10px; align-items: flex-end;
     margin-bottom: 12px; flex-wrap: wrap;
@@ -1516,6 +1565,11 @@
       <div class="help" style="margin-top:6px;">
         曜日ごとに通常の時限数を設定できます。週間カレンダーでは、各曜日この時限数まで授業セルが表示されます。
       </div>
+      <div class="section-save-bar">
+        <span class="section-dirty-ind" id="cfgDirtyInd">未保存</span>
+        <button type="button" class="btn" id="cfgSaveBtn">時間割の共通設定を保存</button>
+        <button type="button" class="btn secondary" id="cfgCancelBtn">変更を破棄</button>
+      </div>
     </div>
     <div class="panel pat-A">
       <h2>時間割A</h2>
@@ -1537,6 +1591,11 @@
         <button type="button" class="btn secondary small" id="ttAStartClear" title="適用開始日を解除（全日に適用）">クリア</button>
       </div>
       <table class="timetable" id="ttA-grid"></table>
+      <div class="tt-save-bar">
+        <span class="tt-dirty-ind" id="ttADirtyInd">未保存の変更があります</span>
+        <button type="button" class="btn" id="ttASave">時間割Aを保存</button>
+        <button type="button" class="btn secondary" id="ttACancel">キャンセル</button>
+      </div>
     </div>
     <div class="panel pat-B">
       <h2>時間割B</h2>
@@ -1557,6 +1616,11 @@
         <button type="button" class="btn secondary small" id="ttBStartClear" title="適用開始日を解除（全日に適用）">クリア</button>
       </div>
       <table class="timetable" id="ttB-grid"></table>
+      <div class="tt-save-bar">
+        <span class="tt-dirty-ind" id="ttBDirtyInd">未保存の変更があります</span>
+        <button type="button" class="btn" id="ttBSave">時間割Bを保存</button>
+        <button type="button" class="btn secondary" id="ttBCancel">キャンセル</button>
+      </div>
     </div>
     <div class="panel">
       <h2>科目マスタ</h2>
@@ -1567,25 +1631,32 @@
         </div>
       </div>
       <div class="btn-row">
-        <button class="btn" id="masterSave">マスタを保存</button>
         <button class="btn secondary" id="masterTplHigh">高校向け科目サンプルを追加</button>
         <button class="btn secondary" id="masterClearSubjects">科目を全削除</button>
       </div>
       <div class="help" style="margin-top:10px;">
         登録した科目は時間割セルや授業記録の入力候補として表示されます。候補に無い名前も直接入力できます。
       </div>
+      <div class="section-save-bar">
+        <span class="section-dirty-ind" id="mastersDirtyInd">未保存</span>
+        <button type="button" class="btn" id="mastersSaveBtn">科目マスタを保存</button>
+        <button type="button" class="btn secondary" id="mastersCancelBtn">変更を破棄</button>
+      </div>
     </div>
     <div class="panel">
-      <h2>次の考査初日</h2>
+      <h2>考査対象期間</h2>
       <div class="help" style="margin-bottom:10px;">
-        授業記録画面に、この日の<strong>前日まで</strong>に残っている未実施の授業コマ数（科目別）が表示されます。
+        各考査の対象期間（開始日・終了日）と考査名を入力してください。<br>
+        授業記録画面の「残り授業コマ数」は、<strong>一番近い未来の考査終了日まで</strong>の未実施授業コマ数を表示します。
       </div>
-      <div class="settings-row">
-        <div class="field" style="flex:1;">
-          <label>次の考査初日</label>
-          <input id="cfgExamDate" type="date">
-        </div>
-        <button class="btn secondary small" id="cfgExamClear" style="margin-top:16px;">クリア</button>
+      <table class="exam-periods-grid" id="examPeriodsGrid"></table>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn secondary small" id="examPeriodAdd">+ 考査を追加</button>
+      </div>
+      <div class="section-save-bar">
+        <span class="section-dirty-ind" id="examDirtyInd">未保存</span>
+        <button type="button" class="btn" id="examSaveBtn">考査対象期間を保存</button>
+        <button type="button" class="btn secondary" id="examCancelBtn">変更を破棄</button>
       </div>
     </div>
     <div class="panel">
@@ -1595,8 +1666,12 @@
       </div>
       <table class="cat-grid" id="catGrid"></table>
       <div class="btn-row">
-        <button class="btn" id="catSave">カテゴリ設定を保存</button>
         <button class="btn secondary" id="catReset">色を既定に戻す</button>
+      </div>
+      <div class="section-save-bar">
+        <span class="section-dirty-ind" id="catDirtyInd">未保存</span>
+        <button type="button" class="btn" id="catSaveBtn">カテゴリ設定を保存</button>
+        <button type="button" class="btn secondary" id="catCancelBtn">変更を破棄</button>
       </div>
     </div>
     <div class="panel">
@@ -1724,7 +1799,8 @@ function defaultData() {
     subjectMemos: {},          /* 旧: 科目別メモ（互換のため残す） */
     classMemos: {},            /* 新: 単発授業ごとのメモ key='YYYY-MM-DD|期|科目' */
     documents: [],             /* 資料: { id, title, category, src, addedAt } */
-    examDate: ''
+    examDate: '',              /* 旧: 互換のため残す */
+    examPeriods: []            /* 新: [{ id, name, start, end }] */
   };
 }
 
@@ -1782,8 +1858,13 @@ function migrate(d) {
       subjectMemos: d.subjectMemos || {},
       classMemos: d.classMemos || {},
       documents: d.documents || [],
-      examDate: d.examDate || ''
+      examDate: d.examDate || '',
+      examPeriods: d.examPeriods || []
     });
+    /* 旧 examDate の自動移行: examPeriods が空なら、旧 examDate を1件追加（終了日として） */
+    if ((!merged.examPeriods || merged.examPeriods.length === 0) && merged.examDate) {
+      merged.examPeriods = [{ id: uid(), name: '考査', start: '', end: merged.examDate }];
+    }
     ensureDayPeriods(merged.config);
     return merged;
   }
@@ -1826,6 +1907,10 @@ function migrate(d) {
   base.classMemos = d.classMemos || {};
   base.documents = d.documents || [];
   base.examDate = d.examDate || '';
+  base.examPeriods = d.examPeriods || [];
+  if ((!base.examPeriods || base.examPeriods.length === 0) && base.examDate) {
+    base.examPeriods = [{ id: uid(), name: '考査', start: '', end: base.examDate }];
+  }
   ensureDayPeriods(base.config);
   return base;
 }
@@ -2013,12 +2098,112 @@ let viewedMonth = { y: nowD.getFullYear(), m: nowD.getMonth() };
 let viewedWeekMonday = weekMondayOf(new Date());
 let currentTodoFilter = 'open';
 
+/* 時間割編集の下書き（保存ボタン押下までは他画面に反映されない） */
+let _ttDraft = {
+  A: { cells: {}, startDate: null, dirty: false },
+  B: { cells: {}, startDate: null, dirty: false }
+};
+/* 編集中の時間割セル値を取得（draftがあればそれ、なければ確定済み） */
+function getDraftCellValue(key, cellKey) {
+  if (Object.prototype.hasOwnProperty.call(_ttDraft[key].cells, cellKey)) {
+    return _ttDraft[key].cells[cellKey];
+  }
+  const c = state.timetables[key].cells[cellKey];
+  return c ? (c.subject || '') : '';
+}
+function getDraftStartDate(key) {
+  if (_ttDraft[key].startDate !== null) return _ttDraft[key].startDate;
+  return state.timetables[key].startDate || '';
+}
+function markTtDirty(key) {
+  _ttDraft[key].dirty = true;
+  updateTtSaveStatus(key);
+}
+function updateTtSaveStatus(key) {
+  const ind = document.getElementById('tt' + key + 'DirtyInd');
+  if (!ind) return;
+  if (_ttDraft[key].dirty) ind.style.display = 'inline-block';
+  else ind.style.display = 'none';
+}
+
+/* ========== 設定タブ（時間割以外）のバッファ式編集 ========== */
+let _settingsDraft = {
+  config: null, examDate: null, masters: null,
+  categoryColors: null, subjectCategories: null, dirty: false
+};
+function ensureSettingsDraftField(field) {
+  if (field === 'examDate') {
+    if (_settingsDraft.examDate === null) _settingsDraft.examDate = state.examDate || '';
+  } else if (field === 'examPeriods') {
+    if (_settingsDraft.examPeriods == null) {
+      _settingsDraft.examPeriods = JSON.parse(JSON.stringify(state.examPeriods || []));
+    }
+  } else if (_settingsDraft[field] == null) {
+    _settingsDraft[field] = JSON.parse(JSON.stringify(state[field]));
+  }
+}
+function gsConfig() { return _settingsDraft.config || state.config; }
+function gsExamDate() { return _settingsDraft.examDate !== null ? _settingsDraft.examDate : (state.examDate || ''); }
+function gsExamPeriods() { return _settingsDraft.examPeriods != null ? _settingsDraft.examPeriods : (state.examPeriods || []); }
+function gsMasters() { return _settingsDraft.masters || state.masters; }
+function gsCatColors() { return _settingsDraft.categoryColors || state.categoryColors; }
+function gsSubjCats() { return _settingsDraft.subjectCategories || state.subjectCategories; }
+function markSettingsDirty() {
+  _settingsDraft.dirty = true;
+  updateSettingsSaveStatus();
+}
+function updateSettingsSaveStatus() {
+  const ind = document.getElementById('settingsDirtyInd');
+  if (!ind) return;
+  ind.style.display = _settingsDraft.dirty ? 'inline-block' : 'none';
+}
+function resetSettingsDraft() {
+  _settingsDraft = { config: null, examDate: null, examPeriods: null, masters: null,
+    categoryColors: null, subjectCategories: null, dirty: false };
+}
+
+/* セクション別に保存・破棄するヘルパ。fields はそのセクションが管理するdraftフィールド名 */
+function isSectionDirty(fields) {
+  return fields.some(f => _settingsDraft[f] != null);
+}
+function commitSection(fields, toastMsg) {
+  if (!isSectionDirty(fields)) { toast('変更はありません'); return; }
+  fields.forEach(f => {
+    if (_settingsDraft[f] != null) {
+      state[f] = _settingsDraft[f];
+      _settingsDraft[f] = null;
+    }
+  });
+  _settingsDraft.dirty = ['config','examDate','examPeriods','masters','categoryColors','subjectCategories']
+    .some(f => _settingsDraft[f] != null);
+  save(); refreshDatalists();
+  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+  renderTimetableEditor('A'); renderTimetableEditor('B');
+  renderExamCountPanel();
+  renderSettings();
+  toast(toastMsg || '保存しました');
+}
+function discardSection(fields) {
+  if (!isSectionDirty(fields)) { toast('変更はありません'); return; }
+  if (!confirm('このセクションの未保存の変更を破棄しますか？')) return;
+  fields.forEach(f => { _settingsDraft[f] = null; });
+  _settingsDraft.dirty = ['config','examDate','examPeriods','masters','categoryColors','subjectCategories']
+    .some(f => _settingsDraft[f] != null);
+  renderSettings();
+}
+
 /* ========== 年度管理 ========== */
 function getYearKeys() {
   return Object.keys(allData.years).sort();
 }
 function switchYear(yr) {
   if (!allData.years[yr]) return;
+  /* 設定タブと時間割の draft は年度切替時にクリア（混線防止） */
+  if (typeof resetSettingsDraft === 'function') resetSettingsDraft();
+  if (typeof _ttDraft !== 'undefined') {
+    _ttDraft.A = { cells: {}, startDate: null, dirty: false };
+    _ttDraft.B = { cells: {}, startDate: null, dirty: false };
+  }
   allData.currentYear = yr;
   state = allData.years[yr];
   save();
@@ -2138,11 +2323,12 @@ function renderTimetableEditor(key) {
     let row = `<tr><td class="period-head">${p}</td>`;
     for (let d = 0; d < days; d++) {
       const cellKey = `${d}-${p}`;
-      const cell = pat.cells[cellKey] || {};
+      /* 確定値ではなく draft を優先（保存前のプレビュー） */
+      const draftVal = getDraftCellValue(key, cellKey);
       row += `
         <td>
           <div class="cell">
-            <input list="subjectList" data-pat="${key}" data-key="${cellKey}" data-field="subject" class="subject-input" placeholder="科目" value="${escapeHtml(cell.subject||'')}">
+            <input list="subjectList" data-pat="${key}" data-key="${cellKey}" data-field="subject" class="subject-input" placeholder="科目" value="${escapeHtml(draftVal)}">
           </div>
         </td>`;
     }
@@ -2162,26 +2348,17 @@ function renderTimetableEditor(key) {
 
   tbl.innerHTML = html;
 
-  // wire events
+  // wire events — 入力は draft に書く（保存ボタンが押されるまで state.timetables には反映しない）
   tbl.querySelectorAll('.subject-input').forEach(inp => {
     inp.addEventListener('input', () => {
       const k = inp.dataset.pat;
       const cellKey = inp.dataset.key;
-      const field = inp.dataset.field;
-      const t = state.timetables[k];
-      if (!t.cells[cellKey]) t.cells[cellKey] = {};
-      const oldVal = t.cells[cellKey][field] || '';
-      const newVal = inp.value;
-      /* 過去日の保護: 科目を変更したとき、変更前の科目を「今日より前で当該パターン割当の同曜日」に
-         dayOverrides としてスナップショットする（既存overrideは尊重） */
-      if (field === 'subject' && oldVal && oldVal !== newVal) {
-        const parts = cellKey.split('-').map(Number);
-        snapshotPastSubjectsForCell(k, parts[0], parts[1], oldVal);
-      }
-      t.cells[cellKey][field] = newVal;
-      save(); refreshDatalists();
+      _ttDraft[k].cells[cellKey] = inp.value;
+      markTtDirty(k);
     });
   });
+  /* 保存状態インジケータの初期描画 */
+  updateTtSaveStatus(key);
 }
 
 /* 時間割セル変更時の過去日スナップショット（履歴保護） */
@@ -2203,7 +2380,9 @@ function snapshotPastSubjectsForCell(key, weekday, period, oldSubject) {
 
 function clearPattern(key) {
   if (!confirm(`時間割${key}の内容を全て消去しますか？`)) return;
-  state.timetables[key] = { cells:{}, specials:{before:{},lunch:{},after:{}} };
+  const oldStartDate = state.timetables[key].startDate || '';
+  state.timetables[key] = { cells:{}, specials:{before:{},lunch:{},after:{}}, startDate: oldStartDate };
+  _ttDraft[key] = { cells: {}, startDate: null, dirty: false };
   save(); renderTimetableEditor(key);
   toast(`時間割${key}を消去しました`);
 }
@@ -2211,7 +2390,11 @@ function copyPattern(fromKey, toKey) {
   if (fromKey === toKey) return;
   if (!confirm(`時間割${fromKey} の内容を 時間割${toKey} にコピーします。${toKey}の現在の内容は上書きされます。よろしいですか？`)) return;
   const src = state.timetables[fromKey];
-  state.timetables[toKey] = JSON.parse(JSON.stringify(src));
+  const oldStartDate = state.timetables[toKey].startDate || '';
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.startDate = oldStartDate;     /* startDateはコピー対象外（パターン固有） */
+  state.timetables[toKey] = copy;
+  _ttDraft[toKey] = { cells: {}, startDate: null, dirty: false };
   save(); renderTimetableEditor(toKey);
   toast(`時間割${fromKey} → 時間割${toKey} にコピーしました`);
 }
@@ -2728,28 +2911,35 @@ function getEffectiveSubject(iso, p) {
   }
   return { subject: getPatternSubject(iso, p), isOverride: false, isDeleted: false };
 }
-/* 次の考査初日までの未実施授業コマ数を科目別に集計 */
-function countPendingClasses() {
-  const refIso = state.examDate;
-  if (!refIso) return null;
+/* 一番近い未来の考査終了日を取得（無ければ null） */
+function getUpcomingExamPeriod() {
   const today = todayStr();
-  const endDate = parseDate(refIso);
-  if (!endDate) return null;
-  endDate.setDate(endDate.getDate() - 1); // 前日まで
-  const endIso = dateStrOf(endDate);
-  if (endIso < today) return { expired: true, refIso, items: [] };
+  const list = (state.examPeriods || []).slice().filter(ep => ep.end && ep.end >= today);
+  if (list.length === 0) return null;
+  list.sort((a,b) => (a.end||'').localeCompare(b.end||''));
+  return list[0];
+}
+
+/* 一番近い未来の考査終了日までの未実施授業コマ数を科目別に集計 */
+function countPendingClasses() {
+  const upcoming = getUpcomingExamPeriod();
+  if (!upcoming) return null;
+  const today = todayStr();
+  const endIso = upcoming.end;
+  if (endIso < today) return { expired: true, refIso: endIso, examName: upcoming.name, items: [] };
 
   const cfg = state.config;
   const periods = cfg.periods;
   const days = cfg.days;
-
   const counts = {}; // subject -> count
   /* 科目マスタに登録されている科目は、時間割に登場しなくても残り0として一覧に表示する */
   (state.masters.subjects || []).forEach(sub => {
     if (!sub) return;
     if (!(sub in counts)) counts[sub] = 0;
   });
+  /* 期間: 今日 〜 終了日（含む） */
   const start = parseDate(today);
+  const endDate = parseDate(endIso);
   for (let dt = new Date(start); dt <= endDate; dt.setDate(dt.getDate() + 1)) {
     const iso = dateStrOf(dt);
     const wd = ourWeekday(dt);
@@ -2783,7 +2973,7 @@ function countPendingClasses() {
       // 両方マスタ外の場合は科目名順
       return a.subject.localeCompare(b.subject,'ja');
     });
-  return { expired: false, refIso, items };
+  return { expired: false, refIso: endIso, examName: upcoming.name, items };
 }
 
 function renderExamCountPanel() {
@@ -2793,21 +2983,19 @@ function renderExamCountPanel() {
   const result = countPendingClasses();
   if (!result) {
     body.innerHTML = `<div class="exam-count-head">
-      基準日（次の考査初日）が未設定です。設定タブの「次の考査初日」で日付を指定してください。
+      考査対象期間が未設定です。設定タブの「考査対象期間」で考査を追加してください。
     </div>`;
     return;
   }
   if (result.expired) {
     body.innerHTML = `<div class="exam-count-head">
-      基準日「${escapeHtml(result.refIso)}」は過ぎています。設定タブで新しい基準日を指定してください。
+      ${escapeHtml(result.examName||'考査')}（終了日 ${escapeHtml(result.refIso)}）は過ぎています。設定タブで新しい考査を追加してください。
     </div>`;
     return;
   }
-  const endIso = (() => {
-    const d = parseDate(result.refIso); d.setDate(d.getDate() - 1); return dateStrOf(d);
-  })();
+  const examLabel = result.examName ? `<b>${escapeHtml(result.examName)}</b>` : '<b>次回の考査</b>';
   const header = `<div class="exam-count-head">
-    次の考査初日: <b>${escapeHtml(result.refIso)}</b>（${escapeHtml(todayStr())} 〜 ${escapeHtml(endIso)} の未実施コマを集計）
+    ${examLabel}（${escapeHtml(todayStr())} 〜 終了日 ${escapeHtml(result.refIso)} の未実施コマを集計）
   </div>`;
   if (result.items.length === 0) {
     body.innerHTML = header + `<div class="exam-count-empty">集計対象の授業コマはありません。</div>`;
@@ -3859,7 +4047,7 @@ function renderSettings() {
     ySel.innerHTML = keys.map(k => `<option value="${escapeHtml(k)}">${escapeHtml(k)}年度</option>`).join('');
     ySel.value = allData.currentYear;
   }
-  const cfg = state.config;
+  const cfg = gsConfig();
   $('#cfgDays').value = cfg.days;
   $('#cfgPeriods').value = cfg.periods;
   const lunchSel = $('#cfgLunchAfter');
@@ -3868,22 +4056,80 @@ function renderSettings() {
     lunchSel.innerHTML += `<option value="${i}">${i}時限の後</option>`;
   }
   lunchSel.value = Math.min(cfg.lunchAfter || 0, cfg.periods - 1);
-  $('#masterSubjects').value = (state.masters.subjects||[]).join(', ');
-  $('#cfgExamDate').value = state.examDate || '';
+  $('#masterSubjects').value = (gsMasters().subjects||[]).join(', ');
   /* 時間割A/Bの適用開始日 */
-  if ($('#ttAStart')) $('#ttAStart').value = (state.timetables.A && state.timetables.A.startDate) || '';
-  if ($('#ttBStart')) $('#ttBStart').value = (state.timetables.B && state.timetables.B.startDate) || '';
+  if ($('#ttAStart')) $('#ttAStart').value = getDraftStartDate('A');
+  if ($('#ttBStart')) $('#ttBStart').value = getDraftStartDate('B');
   renderDayPeriodsGrid();
   renderCategoryGrid();
+  renderExamPeriodsGrid();
+  updateSettingsSaveStatus();
+  /* セクション別 dirty インジケータの表示制御 */
+  const setInd = (id, dirty) => { const el = $('#' + id); if (el) el.style.display = dirty ? 'inline-block' : 'none'; };
+  setInd('cfgDirtyInd', _settingsDraft.config != null);
+  setInd('mastersDirtyInd', _settingsDraft.masters != null);
+  setInd('catDirtyInd', _settingsDraft.categoryColors != null || _settingsDraft.subjectCategories != null);
+  setInd('examDirtyInd', _settingsDraft.examPeriods != null);
 }
 
-/* 曜日ごとの時限数グリッドを表示 */
+/* 考査対象期間テーブルのレンダリング */
+function renderExamPeriodsGrid() {
+  const tbl = $('#examPeriodsGrid');
+  if (!tbl) return;
+  const list = gsExamPeriods();
+  let html = '<thead><tr><th style="width:30%;">考査名</th><th>開始日</th><th>終了日</th><th style="width:60px;">削除</th></tr></thead><tbody>';
+  if (!list || list.length === 0) {
+    html += '<tr><td colspan="4" class="ep-empty">考査が登録されていません。「+ 考査を追加」で行を追加してください。</td></tr>';
+  } else {
+    list.forEach(ep => {
+      html += `<tr data-id="${ep.id}">
+        <td><input type="text" class="ep-name" data-id="${ep.id}" value="${escapeHtml(ep.name||'')}" placeholder="例: 1学期中間考査"></td>
+        <td><input type="date" class="ep-start" data-id="${ep.id}" value="${escapeHtml(ep.start||'')}"></td>
+        <td><input type="date" class="ep-end" data-id="${ep.id}" value="${escapeHtml(ep.end||'')}"></td>
+        <td style="text-align:center;"><button type="button" class="ep-del" data-id="${ep.id}">×</button></td>
+      </tr>`;
+    });
+  }
+  html += '</tbody>';
+  tbl.innerHTML = html;
+  /* 入力イベント — draft に書き込む */
+  const onInput = (cls, fieldName) => {
+    tbl.querySelectorAll('.' + cls).forEach(inp => {
+      inp.addEventListener('input', () => {
+        ensureSettingsDraftField('examPeriods');
+        const id = inp.dataset.id;
+        const ep = _settingsDraft.examPeriods.find(x => x.id === id);
+        if (!ep) return;
+        ep[fieldName] = inp.value;
+        markSettingsDirty();
+        const ind = $('#examDirtyInd'); if (ind) ind.style.display = 'inline-block';
+      });
+    });
+  };
+  onInput('ep-name', 'name');
+  onInput('ep-start', 'start');
+  onInput('ep-end', 'end');
+  /* 削除 */
+  tbl.querySelectorAll('.ep-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ensureSettingsDraftField('examPeriods');
+      const id = btn.dataset.id;
+      _settingsDraft.examPeriods = _settingsDraft.examPeriods.filter(x => x.id !== id);
+      markSettingsDirty();
+      renderExamPeriodsGrid();
+      const ind = $('#examDirtyInd'); if (ind) ind.style.display = 'inline-block';
+    });
+  });
+}
+
+/* 曜日ごとの時限数グリッドを表示（draft 値を使う） */
 function renderDayPeriodsGrid() {
   const tbl = $('#dayPeriodsGrid');
   if (!tbl) return;
-  ensureDayPeriods(state.config);
-  const dp = state.config.dayPeriods;
-  const max = state.config.periods || 6;
+  const cfg = gsConfig();
+  ensureDayPeriods(cfg);
+  const dp = cfg.dayPeriods;
+  const max = cfg.periods || 6;
   let html = '<tr>';
   for (let d = 0; d < 7; d++) html += `<th>${WEEKDAYS[d]}</th>`;
   html += '</tr><tr>';
@@ -3895,15 +4141,14 @@ function renderDayPeriodsGrid() {
   tbl.innerHTML = html;
   tbl.querySelectorAll('.dp-num').forEach(inp => {
     inp.addEventListener('change', () => {
+      ensureSettingsDraftField('config');
       const d = parseInt(inp.dataset.d);
       let v = parseInt(inp.value); if (isNaN(v) || v < 0) v = 0;
-      const cap = state.config.periods || 6;
+      const cap = _settingsDraft.config.periods || 6;
       if (v > cap) v = cap;
       inp.value = v;
-      state.config.dayPeriods[d] = v;
-      save();
-      if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
-      renderTimetableEditor('A'); renderTimetableEditor('B');
+      _settingsDraft.config.dayPeriods[d] = v;
+      markSettingsDirty();
     });
   });
 }
@@ -3911,16 +4156,17 @@ function renderDayPeriodsGrid() {
 function renderCategoryGrid() {
   const tbl = $('#catGrid');
   if (!tbl) return;
-  // Build map: category -> [subjects]
+  const colors = gsCatColors();
+  const subjCats = gsSubjCats();
   const subsByCat = {};
   DEFAULT_CATEGORIES.forEach(c => { subsByCat[c] = []; });
-  Object.entries(state.subjectCategories).forEach(([sub, cat]) => {
+  Object.entries(subjCats).forEach(([sub, cat]) => {
     if (!subsByCat[cat]) subsByCat[cat] = [];
     subsByCat[cat].push(sub);
   });
   let html = '<thead><tr><th>カテゴリ</th><th>色</th><th>表示見本</th><th>科目（カンマ区切り）</th></tr></thead><tbody>';
   DEFAULT_CATEGORIES.forEach(cat => {
-    const color = state.categoryColors[cat] || '#555555';
+    const color = colors[cat] || '#555555';
     const subs = (subsByCat[cat] || []).sort((a,b)=>a.localeCompare(b,'ja')).join(', ');
     html += `<tr>
       <td class="cat-name">${escapeHtml(cat)}</td>
@@ -3934,13 +4180,26 @@ function renderCategoryGrid() {
 
   tbl.querySelectorAll('.cat-color-input').forEach(inp => {
     inp.addEventListener('input', () => {
+      ensureSettingsDraftField('categoryColors');
       const cat = inp.dataset.cat;
-      state.categoryColors[cat] = inp.value;
-      // live-update sample cell
+      _settingsDraft.categoryColors[cat] = inp.value;
       const sample = tbl.querySelector(`.cat-sample[data-sample="${CSS.escape(cat)}"]`);
       if (sample) sample.style.color = inp.value;
-      save();
-      if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+      markSettingsDirty();
+    });
+  });
+  tbl.querySelectorAll('.cat-subjects').forEach(ta => {
+    ta.addEventListener('input', () => {
+      ensureSettingsDraftField('subjectCategories');
+      /* テキストエリア群から再構築 */
+      const newMap = {};
+      tbl.querySelectorAll('.cat-subjects').forEach(t2 => {
+        const cat = t2.dataset.cat;
+        const subs = t2.value.split(/[,、\n]/).map(s => s.trim()).filter(Boolean);
+        subs.forEach(s => { newMap[s] = cat; });
+      });
+      _settingsDraft.subjectCategories = newMap;
+      markSettingsDirty();
     });
   });
 }
@@ -3987,122 +4246,156 @@ $('#yearDelete').addEventListener('click', () => {
 });
 
 $('#cfgDays').addEventListener('change', e => {
+  ensureSettingsDraftField('config');
   const newDays = parseInt(e.target.value);
-  state.config.days = newDays;
-  /* 曜日数を増やしたら、その曜日の dayPeriods を 0 → 通常時限数に */
-  ensureDayPeriods(state.config);
+  _settingsDraft.config.days = newDays;
+  ensureDayPeriods(_settingsDraft.config);
   for (let d = 0; d < 7; d++) {
-    if (d < newDays && state.config.dayPeriods[d] === 0) {
-      state.config.dayPeriods[d] = state.config.periods || 6;
+    if (d < newDays && _settingsDraft.config.dayPeriods[d] === 0) {
+      _settingsDraft.config.dayPeriods[d] = _settingsDraft.config.periods || 6;
     }
     if (d >= newDays) {
-      state.config.dayPeriods[d] = 0;
+      _settingsDraft.config.dayPeriods[d] = 0;
     }
   }
-  save(); renderSettings();
-  renderTimetableEditor('A'); renderTimetableEditor('B');
-  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+  markSettingsDirty();
+  renderSettings();
 });
 $('#cfgPeriods').addEventListener('change', e => {
+  ensureSettingsDraftField('config');
   const v = Math.max(1, Math.min(10, parseInt(e.target.value) || 6));
-  state.config.periods = v;
-  if (state.config.lunchAfter >= v) state.config.lunchAfter = Math.max(0, v-1);
-  /* 既存の dayPeriods が新最大を超える場合は丸める */
-  ensureDayPeriods(state.config);
+  _settingsDraft.config.periods = v;
+  if (_settingsDraft.config.lunchAfter >= v) _settingsDraft.config.lunchAfter = Math.max(0, v-1);
+  ensureDayPeriods(_settingsDraft.config);
   for (let d = 0; d < 7; d++) {
-    if (state.config.dayPeriods[d] > v) state.config.dayPeriods[d] = v;
+    if (_settingsDraft.config.dayPeriods[d] > v) _settingsDraft.config.dayPeriods[d] = v;
   }
-  save(); renderSettings();
-  renderTimetableEditor('A'); renderTimetableEditor('B');
-  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+  markSettingsDirty();
+  renderSettings();
 });
 $('#cfgLunchAfter').addEventListener('change', e => {
-  state.config.lunchAfter = parseInt(e.target.value) || 0;
-  save(); renderSettings();
-  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+  ensureSettingsDraftField('config');
+  _settingsDraft.config.lunchAfter = parseInt(e.target.value) || 0;
+  markSettingsDirty();
 });
-$('#cfgExamDate').addEventListener('change', e => {
-  state.examDate = e.target.value || '';
-  save();
-  toast(state.examDate ? '次の考査初日を設定しました' : '基準日をクリアしました');
-});
-$('#cfgExamClear').addEventListener('click', () => {
-  state.examDate = '';
-  $('#cfgExamDate').value = '';
-  save();
-  toast('基準日をクリアしました');
+/* 考査追加 */
+const _examAddBtn = $('#examPeriodAdd');
+if (_examAddBtn) _examAddBtn.addEventListener('click', () => {
+  ensureSettingsDraftField('examPeriods');
+  _settingsDraft.examPeriods.push({ id: uid(), name: '', start: '', end: '' });
+  markSettingsDirty();
+  renderExamPeriodsGrid();
+  const ind = $('#examDirtyInd'); if (ind) ind.style.display = 'inline-block';
 });
 
-/* 時間割の適用開始日: 入力/変更時にスナップショットを作成 */
+/* 時間割の適用開始日: 変更は draft に積み、保存ボタン押下まで反映しない */
 ['A','B'].forEach(key => {
   const inp = $('#tt' + key + 'Start');
   const clr = $('#tt' + key + 'StartClear');
   if (inp) {
     inp.addEventListener('change', (e) => {
-      applyTimetableStartDate(key, e.target.value || '');
-      if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
-      renderCalendar();
-      toast(e.target.value ? `時間割${key}の適用開始日を設定しました` : `時間割${key}の適用開始日を解除しました`);
+      _ttDraft[key].startDate = e.target.value || '';
+      markTtDirty(key);
     });
   }
   if (clr) {
     clr.addEventListener('click', () => {
-      applyTimetableStartDate(key, '');
+      _ttDraft[key].startDate = '';
       if (inp) inp.value = '';
-      if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
-      renderCalendar();
-      toast(`時間割${key}の適用開始日を解除しました`);
+      markTtDirty(key);
     });
   }
 });
 
-$('#masterSave').addEventListener('click', () => {
-  state.masters.subjects = $('#masterSubjects').value.split(',').map(s => s.trim()).filter(Boolean);
-  /* クラス概念は廃止。互換のため空配列を維持 */
-  state.masters.classes = [];
-  save(); refreshDatalists();
-  toast('科目マスタを保存しました');
+/* 時間割A/B 保存・キャンセルボタン */
+['A','B'].forEach(key => {
+  const saveBtn = $('#tt' + key + 'Save');
+  const cancelBtn = $('#tt' + key + 'Cancel');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      if (!_ttDraft[key].dirty) { toast('変更はありません'); return; }
+      /* 1) 適用開始日の変更があれば先に適用（過去日のスナップショット作成） */
+      if (_ttDraft[key].startDate !== null) {
+        applyTimetableStartDate(key, _ttDraft[key].startDate);
+      }
+      /* 2) セルの変更を state に反映（変更前の科目は過去日にスナップショット） */
+      Object.entries(_ttDraft[key].cells).forEach(([cellKey, newVal]) => {
+        const tt = state.timetables[key];
+        const oldSubject = (tt.cells[cellKey] && tt.cells[cellKey].subject) || '';
+        if (oldSubject && oldSubject !== newVal) {
+          const parts = cellKey.split('-').map(Number);
+          snapshotPastSubjectsForCell(key, parts[0], parts[1], oldSubject);
+        }
+        if (newVal) {
+          if (!tt.cells[cellKey]) tt.cells[cellKey] = {};
+          tt.cells[cellKey].subject = newVal;
+        } else {
+          delete tt.cells[cellKey];
+        }
+      });
+      /* 3) draft をクリア & 保存 & 再描画 */
+      _ttDraft[key] = { cells: {}, startDate: null, dirty: false };
+      save(); refreshDatalists();
+      renderTimetableEditor(key);
+      if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+      renderCalendar();
+      toast(`時間割${key}を保存しました`);
+    });
+  }
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      if (!_ttDraft[key].dirty) { toast('変更はありません'); return; }
+      if (!confirm(`時間割${key}の未保存の変更を破棄しますか？`)) return;
+      _ttDraft[key] = { cells: {}, startDate: null, dirty: false };
+      const inp = $('#tt' + key + 'Start');
+      if (inp) inp.value = state.timetables[key].startDate || '';
+      renderTimetableEditor(key);
+      toast(`時間割${key}の変更を破棄しました`);
+    });
+  }
+});
+
+/* 科目マスタ入力（テキスト） */
+$('#masterSubjects').addEventListener('input', () => {
+  ensureSettingsDraftField('masters');
+  _settingsDraft.masters.subjects = $('#masterSubjects').value.split(',').map(s => s.trim()).filter(Boolean);
+  _settingsDraft.masters.classes = [];
+  markSettingsDirty();
 });
 $('#masterTplHigh').addEventListener('click', () => {
-  const existing = new Set(state.masters.subjects);
+  ensureSettingsDraftField('masters');
+  const existing = new Set(_settingsDraft.masters.subjects || []);
   HS_TEMPLATE.forEach(s => existing.add(s));
-  state.masters.subjects = Array.from(existing);
-  renderSettings(); save(); refreshDatalists();
-  toast('高校向け科目を追加しました');
+  _settingsDraft.masters.subjects = Array.from(existing);
+  markSettingsDirty();
+  renderSettings();
 });
 $('#masterClearSubjects').addEventListener('click', () => {
   if (!confirm('登録済みの科目を全て削除しますか？（時間割のセルには影響しません）')) return;
-  state.masters.subjects = [];
-  renderSettings(); save(); refreshDatalists();
-  toast('科目を全削除しました');
+  ensureSettingsDraftField('masters');
+  _settingsDraft.masters.subjects = [];
+  markSettingsDirty();
+  renderSettings();
 });
 
-$('#catSave').addEventListener('click', () => {
-  // Rebuild subjectCategories from textareas
-  const newMap = {};
-  document.querySelectorAll('#catGrid textarea.cat-subjects').forEach(ta => {
-    const cat = ta.dataset.cat;
-    const subs = ta.value.split(/[,、\n]/).map(s => s.trim()).filter(Boolean);
-    subs.forEach(s => { newMap[s] = cat; });
-  });
-  state.subjectCategories = newMap;
-  // Colors are already saved on change, but re-collect just in case
-  document.querySelectorAll('#catGrid input.cat-color-input').forEach(inp => {
-    state.categoryColors[inp.dataset.cat] = inp.value;
-  });
-  save();
-  toast('カテゴリ設定を保存しました');
-  renderCategoryGrid();
-  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
-});
+/* カテゴリ色を既定値に戻す */
 $('#catReset').addEventListener('click', () => {
   if (!confirm('カテゴリの色を既定値に戻しますか？（科目の割り当ては保持されます）')) return;
-  state.categoryColors = Object.assign({}, DEFAULT_CATEGORY_COLORS);
-  save();
+  ensureSettingsDraftField('categoryColors');
+  _settingsDraft.categoryColors = Object.assign({}, DEFAULT_CATEGORY_COLORS);
+  markSettingsDirty();
   renderCategoryGrid();
-  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
-  toast('色を既定に戻しました');
 });
+
+/* セクション別の保存・キャンセル */
+$('#cfgSaveBtn').addEventListener('click', () => commitSection(['config'], '時間割の共通設定を保存しました'));
+$('#cfgCancelBtn').addEventListener('click', () => discardSection(['config']));
+$('#mastersSaveBtn').addEventListener('click', () => commitSection(['masters'], '科目マスタを保存しました'));
+$('#mastersCancelBtn').addEventListener('click', () => discardSection(['masters']));
+$('#catSaveBtn').addEventListener('click', () => commitSection(['categoryColors','subjectCategories'], 'カテゴリ設定を保存しました'));
+$('#catCancelBtn').addEventListener('click', () => discardSection(['categoryColors','subjectCategories']));
+$('#examSaveBtn').addEventListener('click', () => commitSection(['examPeriods'], '考査対象期間を保存しました'));
+$('#examCancelBtn').addEventListener('click', () => discardSection(['examPeriods']));
 
 $('#btnExport').addEventListener('click', () => exportDataToFile());
 $('#btnImport').addEventListener('click', () => $('#fileInput').click());
