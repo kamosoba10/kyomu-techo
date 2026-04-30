@@ -2585,7 +2585,11 @@ function renderWeek() {
         /* ✓マーク条件: 「実施済み」ボタンが押された記録が存在 */
         const hasRecord = state.records.some(r => r.date === iso && r.period === p && r.subject === eff.subject && r.done === true);
         const recCls = hasRecord ? ' has-record' : '';
-        const ovMark = eff.isOverride ? '<span class="wk-override-mark" title="この日だけの科目">※</span>' : '';
+        /* 適用開始日より前の日付は時間割スナップショット由来の override なので ※ を表示しない */
+        const _effPat = getEffectivePattern(iso);
+        const _ttSd = _effPat && state.timetables[_effPat] && state.timetables[_effPat].startDate;
+        const _isLockedPast = _ttSd && iso < _ttSd;
+        const ovMark = (eff.isOverride && !_isLockedPast) ? '<span class="wk-override-mark" title="この日だけの科目">※</span>' : '';
         const col = getSubjectColor(eff.subject);
         const colStyle = col ? ` style="color:${escapeHtml(col)}"` : '';
         row += `<td${cellClsAttr}>
@@ -2847,9 +2851,37 @@ function setSubjectOverride(iso, p, subject) {
   save();
 }
 
+/* 過去のいずれかの活動日のうち最も古い ISO 日付を取得（範囲スキャンの起点） */
+function findEarliestActiveDate() {
+  const dates = [];
+  Object.keys(state.dayAssignments || {}).forEach(d => dates.push(d));
+  Object.keys(state.dayNotes || {}).forEach(d => dates.push(d));
+  Object.keys(state.dayOverrides || {}).forEach(d => dates.push(d));
+  Object.keys(state.holidays || {}).forEach(d => dates.push(d));
+  Object.keys(state.dayPatternOverrides || {}).forEach(d => dates.push(d));
+  Object.keys(state.shortDays || {}).forEach(d => dates.push(d));
+  (state.records || []).forEach(r => { if (r.date) dates.push(r.date); });
+  if (dates.length === 0) return todayStr();
+  return dates.sort()[0];
+}
+
+/* 1日分のスナップショットを作成（既存overrideがある時限はスキップ） */
+function snapshotDateForKey(iso, key) {
+  if (!state.dayOverrides[iso]) state.dayOverrides[iso] = {};
+  const periodCount = getEffectivePeriodCount(iso) || (state.config.periods || 6);
+  for (let p = 1; p <= periodCount; p++) {
+    const ovKey = 'p' + p;
+    if (Object.prototype.hasOwnProperty.call(state.dayOverrides[iso], ovKey)) continue;
+    const subj = getPatternSubject(iso, p);
+    if (subj) state.dayOverrides[iso][ovKey] = subj;
+  }
+  if (Object.keys(state.dayOverrides[iso]).length === 0) delete state.dayOverrides[iso];
+}
+
 /* 時間割の適用開始日を設定/変更/解除する。
-   - 設定/変更: 新startDate より前で当該パターンが割り当てられている日付の現在の科目をスナップショット
-   - 解除（クリア）: 当該パターンが割り当てられている全ての日付をスナップショット（現在の表示を維持） */
+   - 設定/変更: 新startDate より前の日付で「実際にこの時間割が表示されていた日」を全てスナップショット
+     （明示assignment だけでなく defaultPattern 経由で表示されていた日も対象にする）
+   - 解除（クリア）: 現在表示されている全ての日付をスナップショット（過去・未来とも） */
 function applyTimetableStartDate(key, newStartDate) {
   const tt = state.timetables[key];
   if (!tt) return;
@@ -2857,21 +2889,32 @@ function applyTimetableStartDate(key, newStartDate) {
   newStartDate = newStartDate || '';
   if (oldStart === newStartDate) return;
 
-  /* 新startDate が空（クリア）なら全日付、そうでなければ新startDate より前の日付をスナップショット対象とする */
-  Object.entries(state.dayAssignments || {}).forEach(([iso, pat]) => {
-    if (pat !== key) return;
-    if (newStartDate && iso >= newStartDate) return;   /* 解除時は全日対象、設定時は過去のみ */
-    if (!state.dayOverrides[iso]) state.dayOverrides[iso] = {};
-    const periodCount = getEffectivePeriodCount(iso) || (state.config.periods || 6);
-    for (let p = 1; p <= periodCount; p++) {
-      const ovKey = 'p' + p;
-      if (Object.prototype.hasOwnProperty.call(state.dayOverrides[iso], ovKey)) continue;
-      /* 現在の科目（startDate 変更前）をキャプチャ。空セルは何もしない */
-      const subj = getPatternSubject(iso, p);
-      if (subj) state.dayOverrides[iso][ovKey] = subj;
+  const earliestIso = findEarliestActiveDate();
+  /* 設定時は newStartDate まで、解除時は今日まで（さらに後ろの明示割当も別ループで処理） */
+  const endIso = newStartDate || todayStr();
+
+  /* 範囲内の全日を走査して、当該キーが effective な日付をスナップショット */
+  const cur = parseDate(earliestIso);
+  const endDt = parseDate(endIso);
+  if (cur && endDt) {
+    while (cur < endDt) {
+      const iso = dateStrOf(cur);
+      const eff = getEffectivePattern(iso);
+      if (eff === key) {
+        snapshotDateForKey(iso, key);
+      }
+      cur.setDate(cur.getDate() + 1);
     }
-    if (Object.keys(state.dayOverrides[iso]).length === 0) delete state.dayOverrides[iso];
-  });
+  }
+
+  /* 解除時は endIso 以降の明示割当もスナップショット */
+  if (!newStartDate) {
+    Object.entries(state.dayAssignments || {}).forEach(([iso, pat]) => {
+      if (pat !== key) return;
+      if (iso < endIso) return;
+      snapshotDateForKey(iso, key);
+    });
+  }
 
   tt.startDate = newStartDate;
   save();
