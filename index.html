@@ -617,6 +617,98 @@
     font-family: inherit;
   }
   .kbd-dismiss.show { display: inline-block; }
+  /* 資料タブ */
+  .doc-add {
+    display: grid; gap: 8px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 700px) {
+    .doc-add {
+      grid-template-columns: 2fr 1fr 2fr auto;
+      align-items: center;
+    }
+  }
+  .doc-add input[type="text"] {
+    width: 100%; box-sizing: border-box;
+  }
+  .doc-list { display: flex; flex-direction: column; gap: 8px; }
+  .doc-list .doc-cat-group {
+    margin-bottom: 6px;
+  }
+  .doc-list .doc-cat-head {
+    font-size: 12px; font-weight: 700;
+    color: var(--accent); margin: 6px 0;
+    border-bottom: 1px dashed var(--line);
+    padding-bottom: 3px;
+  }
+  .doc-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border: 1px solid var(--line);
+    border-radius: 6px; background: #fff;
+  }
+  .doc-item:hover { background: var(--accent-soft); border-color: var(--accent); }
+  .doc-item .doc-info { flex: 1 1 auto; min-width: 0; }
+  .doc-item .doc-title { font-weight: 600; font-size: 14px; color: var(--ink); }
+  .doc-item .doc-meta {
+    font-size: 11px; color: var(--muted); margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .doc-item .doc-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+  .doc-item .doc-btn {
+    background: var(--accent); color: #fff;
+    border: none; padding: 6px 12px; border-radius: 4px;
+    cursor: pointer; font-size: 12px; font-family: inherit;
+  }
+  .doc-item .doc-btn:hover { background: #2a5585; }
+  .doc-item .doc-btn.secondary { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+  .doc-item .doc-btn.danger { color: var(--red); background: #fff; border: 1px solid var(--line); }
+  .doc-item.editing { background: var(--accent-soft); border-color: var(--accent); flex-wrap: wrap; }
+  .doc-edit-form {
+    display: grid; grid-template-columns: 1fr; gap: 6px; width: 100%;
+    margin-top: 8px;
+  }
+  @media (min-width: 700px) {
+    .doc-edit-form { grid-template-columns: 2fr 1fr 2fr auto auto; align-items: center; }
+  }
+  .doc-edit-form input { width: 100%; box-sizing: border-box; }
+  /* 資料ビューア（フルスクリーンオーバーレイ） */
+  .doc-viewer-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 400; display: none; flex-direction: column;
+  }
+  .doc-viewer-bg.show { display: flex; }
+  .doc-viewer {
+    background: #fff; flex: 1 1 auto;
+    display: flex; flex-direction: column;
+    margin: 16px; border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    overflow: hidden;
+  }
+  .doc-viewer-head {
+    background: var(--accent); color: #fff;
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .doc-viewer-title {
+    flex: 1 1 auto; font-weight: 600; font-size: 14px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .doc-viewer-head a, .doc-viewer-head button {
+    color: #fff; background: rgba(255,255,255,0.18);
+    border: none; padding: 6px 12px; border-radius: 4px;
+    font-size: 12px; cursor: pointer; text-decoration: none;
+    font-family: inherit;
+  }
+  .doc-viewer-head a:hover, .doc-viewer-head button:hover {
+    background: rgba(255,255,255,0.30);
+  }
+  .doc-viewer iframe {
+    flex: 1 1 auto; border: 0; width: 100%; background: #f0f0f0;
+  }
+  .empty-doc-list {
+    text-align: center; padding: 30px 10px;
+    color: var(--muted); font-size: 13px;
+  }
   /* iPad の date input は値が空のときプレースホルダーが見えないことがあるため、
      入力欄の上にヒントラベルをオーバーレイ表示する（box-heightを増やさない）。
      - 値があれば自動非表示
@@ -1113,6 +1205,7 @@
   <button data-tab="week" class="active">週間カレンダー</button>
   <button data-tab="records">授業記録</button>
   <button data-tab="todos">todo <span class="badge" id="todoBadge" style="display:none;">0</span></button>
+  <button data-tab="docs">資料</button>
   <button data-tab="calendar">月間カレンダー</button>
   <button data-tab="settings">設定</button>
 </nav>
@@ -1266,7 +1359,7 @@
         </div>
         <div class="form-row one">
           <div class="field">
-            <label>この授業でやることメモ（科目ごとに保存）</label>
+            <label>この授業でやることメモ（この日のこの時限のみ）</label>
             <textarea id="recTodoMemo" class="hint-box-input"></textarea>
           </div>
         </div>
@@ -1351,6 +1444,28 @@
       </div>
       <ul class="todo-list" id="todoList"></ul>
       <div id="todoEmpty" class="empty" style="display:none;"></div>
+    </div>
+  </section>
+
+  <!-- ===== 資料 ===== -->
+  <section id="view-docs" class="view">
+    <div class="panel">
+      <h2>資料を追加</h2>
+      <form id="docAddForm" class="doc-add" onsubmit="return false;">
+        <input id="docTitle" type="text" placeholder="タイトル（例: 2026年度 4月の行事予定）" required>
+        <input id="docCategory" type="text" placeholder="カテゴリ（例: 行事予定）" list="docCatList">
+        <datalist id="docCatList"></datalist>
+        <input id="docSrc" type="text" placeholder="ファイル名（例: pdfs/2026-04-events.pdf）" required>
+        <button class="btn" id="docAdd" type="submit">追加</button>
+      </form>
+      <div class="help" style="margin-top:8px;">
+        PDFはGitHubリポジトリの <code>pdfs/</code> フォルダに事前にアップロードしてください。
+        ここに入力するのは <strong>ファイルへの相対パス</strong>（例: <code>pdfs/2026-04-events.pdf</code>）です。
+      </div>
+    </div>
+    <div class="panel">
+      <h2>登録済みの資料</h2>
+      <div id="docList" class="doc-list"></div>
     </div>
   </section>
 
@@ -1528,6 +1643,18 @@
 <!-- ソフトキーボードを閉じるためのフローティングボタン（iPadで活躍） -->
 <button type="button" class="kbd-dismiss" id="kbdDismissBtn" aria-label="キーボードを閉じる" title="キーボードを閉じる">⌨ 閉じる</button>
 
+<!-- 資料(PDF)閲覧オーバーレイ -->
+<div class="doc-viewer-bg" id="docViewerBg">
+  <div class="doc-viewer">
+    <div class="doc-viewer-head">
+      <span class="doc-viewer-title" id="docViewerTitle">—</span>
+      <a class="doc-viewer-newtab" id="docViewerNewTab" href="#" target="_blank" rel="noopener">↗ 新規タブ</a>
+      <button type="button" id="docViewerClose">閉じる ✕</button>
+    </div>
+    <iframe id="docViewerFrame" src="about:blank"></iframe>
+  </div>
+</div>
+
 <script>
 /* ========== ユーティリティ ========== */
 const STORAGE_KEY = 'kyomu_techo_v1';
@@ -1594,7 +1721,9 @@ function defaultData() {
     masters: { subjects: [], classes: [] },
     categoryColors: Object.assign({}, DEFAULT_CATEGORY_COLORS),
     subjectCategories: {},
-    subjectMemos: {},
+    subjectMemos: {},          /* 旧: 科目別メモ（互換のため残す） */
+    classMemos: {},            /* 新: 単発授業ごとのメモ key='YYYY-MM-DD|期|科目' */
+    documents: [],             /* 資料: { id, title, category, src, addedAt } */
     examDate: ''
   };
 }
@@ -1651,6 +1780,8 @@ function migrate(d) {
       categoryColors: Object.assign({}, DEFAULT_CATEGORY_COLORS, d.categoryColors || {}),
       subjectCategories: d.subjectCategories || {},
       subjectMemos: d.subjectMemos || {},
+      classMemos: d.classMemos || {},
+      documents: d.documents || [],
       examDate: d.examDate || ''
     });
     ensureDayPeriods(merged.config);
@@ -1692,6 +1823,8 @@ function migrate(d) {
   base.categoryColors = Object.assign({}, DEFAULT_CATEGORY_COLORS, d.categoryColors || {});
   base.subjectCategories = d.subjectCategories || {};
   base.subjectMemos = d.subjectMemos || {};
+  base.classMemos = d.classMemos || {};
+  base.documents = d.documents || [];
   base.examDate = d.examDate || '';
   ensureDayPeriods(base.config);
   return base;
@@ -1964,6 +2097,7 @@ function switchTab(name) {
   if (name === 'records') { renderRecords(); refreshDatalists(); renderExamCountPanel(); }
   if (name === 'settings') { renderSettings(); renderTimetableEditor('A'); renderTimetableEditor('B'); }
   if (name === 'todos') { renderTodos(); refreshTodoCats(); }
+  if (name === 'docs') { renderDocuments(); refreshDocCats(); }
 }
 $$('nav.tabs button').forEach(b => {
   b.addEventListener('click', () => switchTab(b.dataset.tab));
@@ -2036,9 +2170,34 @@ function renderTimetableEditor(key) {
       const field = inp.dataset.field;
       const t = state.timetables[k];
       if (!t.cells[cellKey]) t.cells[cellKey] = {};
-      t.cells[cellKey][field] = inp.value;
+      const oldVal = t.cells[cellKey][field] || '';
+      const newVal = inp.value;
+      /* 過去日の保護: 科目を変更したとき、変更前の科目を「今日より前で当該パターン割当の同曜日」に
+         dayOverrides としてスナップショットする（既存overrideは尊重） */
+      if (field === 'subject' && oldVal && oldVal !== newVal) {
+        const parts = cellKey.split('-').map(Number);
+        snapshotPastSubjectsForCell(k, parts[0], parts[1], oldVal);
+      }
+      t.cells[cellKey][field] = newVal;
       save(); refreshDatalists();
     });
+  });
+}
+
+/* 時間割セル変更時の過去日スナップショット（履歴保護） */
+function snapshotPastSubjectsForCell(key, weekday, period, oldSubject) {
+  if (!oldSubject) return;
+  const today = todayStr();
+  Object.entries(state.dayAssignments || {}).forEach(([iso, pat]) => {
+    if (pat !== key) return;
+    if (iso >= today) return;     // 今日以降は今後の編集を反映させたいので対象外
+    const dt = parseDate(iso);
+    if (!dt) return;
+    if (ourWeekday(dt) !== weekday) return;
+    if (!state.dayOverrides[iso]) state.dayOverrides[iso] = {};
+    const ovKey = 'p' + period;
+    if (Object.prototype.hasOwnProperty.call(state.dayOverrides[iso], ovKey)) return;
+    state.dayOverrides[iso][ovKey] = oldSubject;
   });
 }
 
@@ -3015,20 +3174,26 @@ function refreshLastProgressHint() {
   box.innerHTML = html;
 }
 
-/* 「この授業でやることメモ」（科目ごとに保存）の表示更新 */
+/* 「この授業でやること」メモのキー（単発授業単位） */
+function classMemoKey(date, period, subject) {
+  return (date || '') + '|' + (period || '') + '|' + (subject || '');
+}
+/* 「この授業でやること」メモの表示更新 — 単発授業（date|period|subject）単位 */
 function refreshSubjectMemo() {
   const ta = $('#recTodoMemo');
   if (!ta) return;
+  const date = $('#recDate').value || '';
+  const period = $('#recPeriod').value || '';
   const subject = ($('#recSubject').value || '').trim();
   ta.placeholder = '';
-  if (!subject) {
+  if (!date || !period || !subject) {
     ta.value = '';
     ta.disabled = true;
     return;
   }
   ta.disabled = false;
-  const memos = state.subjectMemos || {};
-  ta.value = memos[subject] || '';
+  const memos = state.classMemos || {};
+  ta.value = memos[classMemoKey(date, period, subject)] || '';
 }
 
 /* 授業記録の保存共通処理。markDone=true なら done=true に、false/未指定なら既存値を維持 */
@@ -3123,18 +3288,21 @@ $('#recDelete').addEventListener('click', () => {
 });
 /* recSubject は hidden 入力。値変更はモーダル選択経由で setRecSubjectDisplay と refresh が呼ばれる */
 
-/* 「この授業でやることメモ」: 入力即時に科目ごとに保存（debounce） */
+/* 「この授業でやることメモ」: 入力即時に単発授業（date|period|subject）単位で保存（debounce） */
 let _memoSaveTimer = null;
 $('#recTodoMemo').addEventListener('input', () => {
+  const date = $('#recDate').value || '';
+  const period = $('#recPeriod').value || '';
   const subject = ($('#recSubject').value || '').trim();
-  if (!subject) return;
+  if (!date || !period || !subject) return;
   const ta = $('#recTodoMemo');
-  if (!state.subjectMemos) state.subjectMemos = {};
+  if (!state.classMemos) state.classMemos = {};
+  const k = classMemoKey(date, period, subject);
   const v = ta.value;
   if (v && v.trim()) {
-    state.subjectMemos[subject] = v;
+    state.classMemos[k] = v;
   } else {
-    delete state.subjectMemos[subject];
+    delete state.classMemos[k];
   }
   if (_memoSaveTimer) clearTimeout(_memoSaveTimer);
   _memoSaveTimer = setTimeout(() => { save(); }, 400);
@@ -3504,6 +3672,139 @@ $('#todoClearDone').addEventListener('click', () => {
   state.todos = state.todos.filter(t => !t.done);
   save(); renderTodos(); refreshTodoCats();
   toast('完了済みを削除しました');
+});
+
+/* ========== 資料 (PDFリンク管理) ========== */
+let _editingDocId = null;
+
+function refreshDocCats() {
+  if (!state.documents) state.documents = [];
+  const cats = Array.from(new Set(state.documents.map(d => d.category).filter(Boolean)))
+    .sort((a,b) => a.localeCompare(b,'ja'));
+  const dl = $('#docCatList');
+  if (dl) dl.innerHTML = cats.map(c => `<option value="${escapeHtml(c)}">`).join('');
+}
+
+function renderDocuments() {
+  if (!state.documents) state.documents = [];
+  const wrap = $('#docList');
+  if (!wrap) return;
+  if (state.documents.length === 0) {
+    wrap.innerHTML = '<div class="empty-doc-list">まだ資料が登録されていません。上のフォームから追加してください。</div>';
+    return;
+  }
+  /* カテゴリでグルーピング、各グループ内は追加日の新しい順 */
+  const grouped = {};
+  state.documents.forEach(d => {
+    const cat = d.category || '(カテゴリなし)';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(d);
+  });
+  const cats = Object.keys(grouped).sort((a,b) => a.localeCompare(b,'ja'));
+  let html = '';
+  cats.forEach(cat => {
+    const items = grouped[cat].slice().sort((a,b) => (b.addedAt||'').localeCompare(a.addedAt||''));
+    html += `<div class="doc-cat-group"><div class="doc-cat-head">${escapeHtml(cat)}</div>`;
+    items.forEach(d => {
+      if (d.id === _editingDocId) {
+        html += `
+          <div class="doc-item editing" data-id="${d.id}">
+            <div class="doc-info">
+              <div class="doc-title">${escapeHtml(d.title)}</div>
+              <div class="doc-meta">${escapeHtml(d.src)}</div>
+            </div>
+            <div class="doc-edit-form">
+              <input type="text" class="de-title" value="${escapeHtml(d.title)}" placeholder="タイトル">
+              <input type="text" class="de-cat" value="${escapeHtml(d.category||'')}" placeholder="カテゴリ" list="docCatList">
+              <input type="text" class="de-src" value="${escapeHtml(d.src||'')}" placeholder="ファイル名">
+              <button class="doc-btn de-save" data-id="${d.id}">保存</button>
+              <button class="doc-btn secondary de-cancel" data-id="${d.id}">キャンセル</button>
+            </div>
+          </div>`;
+      } else {
+        html += `
+          <div class="doc-item" data-id="${d.id}">
+            <div class="doc-info">
+              <div class="doc-title">${escapeHtml(d.title)}</div>
+              <div class="doc-meta">${escapeHtml(d.src)}${d.addedAt?(' ・ 追加: '+d.addedAt.slice(0,10)):''}</div>
+            </div>
+            <div class="doc-actions">
+              <button class="doc-btn doc-view" data-id="${d.id}">閲覧</button>
+              <button class="doc-btn secondary doc-edit" data-id="${d.id}">編集</button>
+              <button class="doc-btn danger doc-del" data-id="${d.id}">削除</button>
+            </div>
+          </div>`;
+      }
+    });
+    html += '</div>';
+  });
+  wrap.innerHTML = html;
+  /* イベントワイヤリング */
+  wrap.querySelectorAll('.doc-view').forEach(b => b.addEventListener('click', () => openDocViewer(b.dataset.id)));
+  wrap.querySelectorAll('.doc-edit').forEach(b => b.addEventListener('click', () => {
+    _editingDocId = b.dataset.id; renderDocuments();
+  }));
+  wrap.querySelectorAll('.doc-del').forEach(b => b.addEventListener('click', () => {
+    if (!confirm('この資料の登録を削除しますか？\n（GitHub上のPDFファイル自体は削除されません）')) return;
+    state.documents = state.documents.filter(x => x.id !== b.dataset.id);
+    save(); renderDocuments(); refreshDocCats();
+    toast('資料を削除しました');
+  }));
+  wrap.querySelectorAll('.de-cancel').forEach(b => b.addEventListener('click', () => {
+    _editingDocId = null; renderDocuments();
+  }));
+  wrap.querySelectorAll('.de-save').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.id;
+    const d = state.documents.find(x => x.id === id);
+    if (!d) return;
+    const item = b.closest('.doc-item');
+    const newTitle = item.querySelector('.de-title').value.trim();
+    const newCat = item.querySelector('.de-cat').value.trim();
+    const newSrc = item.querySelector('.de-src').value.trim();
+    if (!newTitle) { toast('タイトルを入力してください'); return; }
+    if (!newSrc) { toast('ファイル名を入力してください'); return; }
+    d.title = newTitle; d.category = newCat; d.src = newSrc;
+    _editingDocId = null;
+    save(); renderDocuments(); refreshDocCats();
+    toast('資料を更新しました');
+  }));
+}
+
+function openDocViewer(id) {
+  const d = state.documents.find(x => x.id === id);
+  if (!d) return;
+  $('#docViewerTitle').textContent = d.title || '';
+  $('#docViewerNewTab').href = d.src;
+  $('#docViewerFrame').src = d.src;
+  $('#docViewerBg').classList.add('show');
+}
+function closeDocViewer() {
+  $('#docViewerBg').classList.remove('show');
+  $('#docViewerFrame').src = 'about:blank';
+}
+$('#docViewerClose').addEventListener('click', closeDocViewer);
+$('#docViewerBg').addEventListener('click', (e) => {
+  if (e.target.id === 'docViewerBg') closeDocViewer();
+});
+
+/* 資料追加フォーム */
+$('#docAddForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const title = $('#docTitle').value.trim();
+  const cat = $('#docCategory').value.trim();
+  const src = $('#docSrc').value.trim();
+  if (!title) { toast('タイトルを入力してください'); return; }
+  if (!src) { toast('ファイル名を入力してください'); return; }
+  if (!state.documents) state.documents = [];
+  state.documents.push({
+    id: uid(), title, category: cat, src,
+    addedAt: new Date().toISOString()
+  });
+  $('#docTitle').value = '';
+  $('#docCategory').value = '';
+  $('#docSrc').value = '';
+  save(); renderDocuments(); refreshDocCats();
+  toast('資料を追加しました');
 });
 
 /* ========== 設定 ========== */
