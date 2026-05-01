@@ -2,7 +2,11 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="教務手帳">
+<meta name="format-detection" content="telephone=no">
 <title>教務手帳</title>
 <style>
   :root {
@@ -21,13 +25,90 @@
     --pat-b: #4a4a4a;
     --pat-b-bg: #e4e4e4;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: rgba(58,110,165,0.18); }
   html, body {
     margin: 0; padding: 0;
     font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
     background: var(--bg);
     color: var(--ink);
     font-size: 14px;
+    -webkit-text-size-adjust: 100%;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+  /* iPad/iPhone: form 要素は font-size 16px 以上だと iOS Safari の自動ズームを抑止できる */
+  input, select, textarea, button {
+    font-family: inherit;
+    -webkit-tap-highlight-color: rgba(58,110,165,0.18);
+  }
+  input[type="text"], input[type="date"], input[type="number"],
+  input[type="search"], input[type="email"], input[type="tel"],
+  input[type="url"], input[type="password"], textarea, select {
+    font-size: 16px;       /* iOS Safari の入力時自動ズームを防ぐ */
+  }
+  /* タップ遅延を排除し、ダブルタップズームも抑止 */
+  button, a, .cal-pat-btn, .cal-holi-btn, .cal-short-btn,
+  .pat-chip, .doc-btn, .todo-edit-btn, .todo-del,
+  .ep-del, .subj-select-btn, .subj-pick-btn, .te-due-clear,
+  nav.tabs button, .chip-btn, label, .todo-color-pick,
+  .todo-color-mini, .todo-drag-handle, .swatch {
+    touch-action: manipulation;
+  }
+  /* 横スクロール領域は慣性スクロールを */
+  .record-list, #progressBody, nav.tabs {
+    -webkit-overflow-scrolling: touch;
+  }
+  /* iPad向け: 操作ボタン類のタップ領域を確保 */
+  nav.tabs button { padding: 14px 18px; font-size: 15px; min-height: 44px; }
+  button.btn { min-height: 40px; padding: 9px 16px; font-size: 14px; }
+  button.btn.small { min-height: 36px; padding: 7px 14px; }
+  /* カレンダーの祝・短ボタンを少し大きく */
+  td .cal-day-btns { gap: 6px !important; }
+  .cal-holi-btn, .cal-short-btn {
+    min-width: 32px; min-height: 28px;
+    padding: 4px 8px; font-size: 12px;
+  }
+  /* 月間カレンダーのパターン切替バッジを大きめに */
+  .cal-pat-btn { padding: 4px 8px; min-width: 28px; min-height: 24px; font-size: 13px; }
+  /* todoの削除/編集ボタン */
+  .todo-del, .todo-edit-btn { min-width: 36px; min-height: 36px; }
+  /* 資料の閲覧/編集/削除 */
+  .doc-item .doc-btn { min-height: 36px; padding: 8px 14px; font-size: 13px; }
+  /* チェックボックスを大きく */
+  .todo-item input[type="checkbox"] { transform: scale(1.5); margin: 6px; cursor: pointer; }
+  /* 教科別カラー swatch も指で押しやすく */
+  .todo-color-popover .swatch { width: 32px; height: 32px; }
+  /* hover 効果はデスクトップ用なので、touch環境では active を強く */
+  @media (hover: none) {
+    .btn:hover, .cal-pat-btn:hover, button:hover { opacity: 1; }
+    .btn:active, button:active { opacity: 0.7; }
+  }
+  /* iPad/iPhone のホームインジケータ・ノッチ対応（PWAホーム画面起動時に重要） */
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  header {
+    padding-top: calc(6px + env(safe-area-inset-top));
+    padding-left: calc(16px + env(safe-area-inset-left));
+    padding-right: calc(16px + env(safe-area-inset-right));
+  }
+  main { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+  .kbd-dismiss {
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    right: calc(12px + env(safe-area-inset-right));
+  }
+  /* 長押しによる iOS のコンテキストメニュー(コピー/共有等)を抑止
+     — カレンダー・週間・進度などのインタラクティブ要素 */
+  table.cal-grid td, table.week-grid td, table.week-grid th,
+  .cal-pat-btn, .pat-chip, .doc-item, .todo-item,
+  .subj-select-btn, .todo-drag-handle {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* ただし入力欄や進度表示はテキスト選択可能に保つ */
+  textarea, input, .prog-text, .hint-box, .doc-viewer-title {
+    -webkit-user-select: auto;
+    user-select: auto;
+    -webkit-touch-callout: default;
   }
   header {
     background: var(--accent);
@@ -252,6 +333,22 @@
   table.progress-table .prog-text-empty {
     color: #ccc; font-style: italic; font-size: 11px;
   }
+  table.progress-table .prog-subj-total {
+    font-size: 11px; color: var(--muted); font-weight: 500;
+    margin-top: 2px;
+  }
+  /* 期間別実施済み集計テーブル */
+  .prog-range-table {
+    border-collapse: collapse; width: 100%; max-width: 540px;
+  }
+  .prog-range-table th, .prog-range-table td {
+    border: 1px solid var(--line); padding: 6px 10px;
+    font-size: 13px;
+  }
+  .prog-range-table th { background: #f4f4f4; font-weight: 600; }
+  .prog-range-table td.prog-range-count {
+    text-align: right; font-weight: 700; font-size: 14px;
+  }
   .tt-controls {
     display: flex; gap: 10px; align-items: flex-end;
     margin-bottom: 12px; flex-wrap: wrap;
@@ -468,6 +565,13 @@
     font-size: 11px; padding: 2px 10px;
   }
   table.week-grid th .wkh-pat .pat-chip:hover { opacity: 0.85; }
+  table.week-grid th .wkh-pat .pat-chip.pat-chip-holiday {
+    background: #c44; color: #fff;
+    cursor: default;
+    max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  table.week-grid th .wkh-pat .pat-chip.pat-chip-holiday:hover { opacity: 1; }
   /* 通常時限は一定の高さに固定。td高さ + position:absolute で内容に依らず一定。 */
   table.week-grid { table-layout: fixed; }
   table.week-grid tr:not([data-special]) { height: 62px; }
@@ -1244,9 +1348,9 @@
   }
   .hint-box.empty { color: var(--muted); font-style: italic; }
   .hint-box .hint-date {
-    display: inline-block;
+    display: block;
     font-weight: 700; color: var(--blue);
-    margin-right: 8px;
+    margin-bottom: 4px;
   }
   /* 「この授業でやることメモ」用 — hint-boxと同じ見た目で書き込み可能なtextarea */
   textarea.hint-box-input {
@@ -1416,10 +1520,6 @@
 
   <!-- ===== 授業記録 ===== -->
   <section id="view-records" class="view">
-    <div class="panel" id="examCountPanel">
-      <h2>次の考査までの残り授業コマ数</h2>
-      <div id="examCountBody"></div>
-    </div>
     <div class="rec-grid">
       <div class="panel">
         <h2 id="formTitle">新規授業記録</h2>
@@ -1506,6 +1606,10 @@
 
   <!-- ===== 授業進度 ===== -->
   <section id="view-progress" class="view">
+    <div class="panel" id="examCountPanel">
+      <h2>次の考査までの残り授業コマ数</h2>
+      <div id="examCountBody"></div>
+    </div>
     <div class="panel">
       <h2>授業進度</h2>
       <div class="settings-row">
@@ -1513,12 +1617,20 @@
           <label>考査対象期間</label>
           <select id="progressExamSel"></select>
         </div>
-        <div class="field" style="flex:0 0 auto;">
-          <label>未実施コマ数</label>
-          <div class="prog-undone-badge" id="progressUndone">—</div>
-        </div>
       </div>
       <div id="progressBody"></div>
+    </div>
+    <div class="panel">
+      <h2>期間別 実施済み授業の集計</h2>
+      <div class="help" style="margin-bottom:8px;">
+        任意の期間（開始日〜終了日）を入力すると、その期間内に実施済みの授業数を科目別に表示します。
+      </div>
+      <div class="settings-row">
+        <div class="field"><label>開始日</label><input type="date" id="progRangeStart"></div>
+        <div class="field"><label>終了日</label><input type="date" id="progRangeEnd"></div>
+        <button type="button" class="btn small" id="progRangeRun" style="margin-top:18px;">集計</button>
+      </div>
+      <div id="progRangeResult" style="margin-top:12px;"></div>
     </div>
   </section>
 
@@ -1628,6 +1740,15 @@
       </div>
       <div class="help" style="margin-top:6px;">
         曜日ごとに通常の時限数を設定できます。週間カレンダーでは、各曜日この時限数まで授業セルが表示されます。
+      </div>
+      <div class="settings-row" style="margin-top:14px; padding-top:10px; border-top:1px dashed var(--line);">
+        <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink); cursor:pointer;">
+          <input type="checkbox" id="cfgAutoHolidays" style="margin:0; transform:scale(1.1);">
+          日本の祝日を自動表示する（月間・週間カレンダー）
+        </label>
+      </div>
+      <div class="help" style="margin-top:4px; font-size:11px;">
+        元日・春分の日・GW・お盆・敬老の日・スポーツの日・文化の日など、振替休日と国民の休日も含めて自動計算します。学校独自の休日は引き続き月間カレンダーの「祝」ボタンで個別に追加できます。
       </div>
       <div class="section-save-bar">
         <span class="section-dirty-ind" id="cfgDirtyInd">未保存</span>
@@ -1826,6 +1947,102 @@ function ourWeekday(date) {
   return (date.getDay() + 6) % 7;
 }
 
+/* ========== 日本の祝日（自動計算） ========== */
+/* 春分の日 (1980-2099 で誤差なし) */
+function _jpSpringEquinox(year) {
+  return Math.floor(20.8431 + 0.242194 * (year - 1980)) - Math.floor((year - 1980) / 4);
+}
+/* 秋分の日 (1980-2099) */
+function _jpAutumnEquinox(year) {
+  return Math.floor(23.2488 + 0.242194 * (year - 1980)) - Math.floor((year - 1980) / 4);
+}
+/* 月の第N回目の特定曜日 (jsWeekday: 0=Sun..6=Sat) を返す */
+function _jpNthWeekday(year, month1, n, jsWeekday) {
+  const first = new Date(year, month1 - 1, 1);
+  const offset = (jsWeekday - first.getDay() + 7) % 7;
+  return new Date(year, month1 - 1, 1 + offset + 7 * (n - 1));
+}
+const _jpHolidayCache = {};
+function getJapaneseHolidaysOfYear(year) {
+  if (_jpHolidayCache[year]) return _jpHolidayCache[year];
+  const map = {};   /* iso -> name */
+  const add = (d, name) => { map[dateStrOf(d)] = name; };
+  /* 固定日 */
+  add(new Date(year, 0, 1), '元日');
+  add(new Date(year, 1, 11), '建国記念の日');
+  if (year >= 2020) add(new Date(year, 1, 23), '天皇誕生日');
+  else if (year >= 1989) add(new Date(year, 11, 23), '天皇誕生日');  /* 平成 */
+  add(new Date(year, 3, 29), '昭和の日');
+  add(new Date(year, 4, 3), '憲法記念日');
+  add(new Date(year, 4, 4), 'みどりの日');
+  add(new Date(year, 4, 5), 'こどもの日');
+  if (year >= 2016) add(new Date(year, 7, 11), '山の日');
+  add(new Date(year, 10, 3), '文化の日');
+  add(new Date(year, 10, 23), '勤労感謝の日');
+  /* 第N月曜 */
+  add(_jpNthWeekday(year, 1, 2, 1), '成人の日');
+  add(_jpNthWeekday(year, 7, 3, 1), '海の日');
+  add(_jpNthWeekday(year, 9, 3, 1), '敬老の日');
+  if (year >= 2020) add(_jpNthWeekday(year, 10, 2, 1), 'スポーツの日');
+  else add(_jpNthWeekday(year, 10, 2, 1), '体育の日');
+  /* 春分・秋分 */
+  add(new Date(year, 2, _jpSpringEquinox(year)), '春分の日');
+  add(new Date(year, 8, _jpAutumnEquinox(year)), '秋分の日');
+  /* 振替休日: 日曜が祝日のとき翌平日 */
+  Object.keys(map).slice().forEach(iso => {
+    const d = parseDate(iso);
+    if (d.getDay() !== 0) return;
+    const next = new Date(d);
+    while (true) {
+      next.setDate(next.getDate() + 1);
+      const nIso = dateStrOf(next);
+      if (!map[nIso]) { map[nIso] = '振替休日'; break; }
+    }
+  });
+  /* 国民の休日: 平日(土日除く)で前後の日が祝日のとき */
+  for (let m = 0; m < 12; m++) {
+    for (let day = 1; day <= 31; day++) {
+      const d = new Date(year, m, day);
+      if (d.getMonth() !== m) break;
+      if (d.getDay() === 0 || d.getDay() === 6) continue;
+      const iso = dateStrOf(d);
+      if (map[iso]) continue;
+      const prev = new Date(d); prev.setDate(prev.getDate() - 1);
+      const next = new Date(d); next.setDate(next.getDate() + 1);
+      if (map[dateStrOf(prev)] && map[dateStrOf(next)]) {
+        map[iso] = '国民の休日';
+      }
+    }
+  }
+  _jpHolidayCache[year] = map;
+  return map;
+}
+function isAutoJpHoliday(iso) {
+  const d = parseDate(iso);
+  if (!d) return null;
+  const m = getJapaneseHolidaysOfYear(d.getFullYear());
+  return m[iso] || null;   /* 祝日名 or null */
+}
+/* state.holidays または自動計算結果のいずれかにあれば祝日扱い。設定で自動表示OFFも可 */
+function isHolidayAny(iso) {
+  if (state.holidays && state.holidays[iso]) return true;
+  if (state.config && state.config.autoJpHolidays === false) return false;
+  return !!isAutoJpHoliday(iso);
+}
+/* 祝日名を返す。優先順:
+   ① state.holidays[iso] に文字列名が入っている → そのまま
+   ② 自動計算で名前が取れる → その名前（手動で祝として登録された日も、日本の祝日と一致するなら正式名を表示）
+   ③ それでも手動マークがあれば「祝日」（汎用名）
+   ④ どれもなければ空文字 */
+function getHolidayLabel(iso) {
+  const v = state.holidays && state.holidays[iso];
+  if (typeof v === 'string' && v) return v;
+  const auto = isAutoJpHoliday(iso);
+  if (auto) return auto;
+  if (v) return '祝日';
+  return '';
+}
+
 /* ========== データ定義 ========== */
 const DEFAULT_CATEGORIES = ['1年','2年','3年','補習','会議','その他'];
 const DEFAULT_CATEGORY_COLORS = {
@@ -1842,7 +2059,9 @@ function defaultData() {
     config: {
       days: 5, periods: 6, lunchAfter: 4,
       /* 曜日別の時限数 (key: ourWeekday 0=月..6=日) */
-      dayPeriods: { 0: 6, 1: 6, 2: 6, 3: 6, 4: 6, 5: 0, 6: 0 }
+      dayPeriods: { 0: 6, 1: 6, 2: 6, 3: 6, 4: 6, 5: 0, 6: 0 },
+      /* 日本の祝日を自動計算して表示するか */
+      autoJpHolidays: true
     },
     timetables: {
       A: { cells: {}, specials: { before: {}, lunch: {}, after: {} }, startDate: '' },
@@ -2343,11 +2562,11 @@ function switchTab(name) {
   $('#view-' + name).classList.add('active');
   if (name === 'calendar') renderCalendar();
   if (name === 'week') renderWeek();
-  if (name === 'records') { renderRecords(); refreshDatalists(); renderExamCountPanel(); }
+  if (name === 'records') { renderRecords(); refreshDatalists(); }
   if (name === 'settings') { renderSettings(); renderTimetableEditor('A'); renderTimetableEditor('B'); }
   if (name === 'todos') { renderTodos(); refreshTodoCats(); }
   if (name === 'docs') { renderDocuments(); refreshDocCats(); }
-  if (name === 'progress') { renderProgress(); }
+  if (name === 'progress') { renderExamCountPanel(); renderProgress(); }
 }
 $$('nav.tabs button').forEach(b => {
   b.addEventListener('click', () => switchTab(b.dataset.tab));
@@ -2498,7 +2717,7 @@ function renderCalendar() {
         const isToday = iso === todayIso ? 'today' : '';
         const dayCls = i===5 ? 'sat' : i===6 ? 'sun' : '';
         const planVal = getDayNote(iso, 'plan');
-        const isHoliday = !!(state.holidays && state.holidays[iso]);
+        const isHoliday = isHolidayAny(iso);
         const dpoExists = !!(state.dayPatternOverrides && state.dayPatternOverrides[iso]);
         const dpoCls = dpoExists ? ' has-dpo' : '';
         const holidayCls = isHoliday ? ' cal-holiday' : '';
@@ -2743,7 +2962,7 @@ function renderWeek() {
     const dt = new Date(monday); dt.setDate(dt.getDate() + d);
     const iso = dateStrOf(dt);
     isos[d] = iso;
-    holidays[d] = !!(state.holidays && state.holidays[iso]);
+    holidays[d] = isHolidayAny(iso);
   }
 
   // header
@@ -2760,12 +2979,15 @@ function renderWeek() {
     const sd = (state.shortDays && state.shortDays[iso]) || null;
     const sdMin = sd && sd.minutes ? sd.minutes : null;
     let chip = '';
-    if (assigned) {
+    /* 祝日の場合は時間割チップの代わりに祝日名を表示 */
+    if (holidays[d]) {
+      const hname = getHolidayLabel(iso) || '祝日';
+      chip = `<span class="pat-chip pat-chip-holiday" title="${escapeHtml(hname)}">${escapeHtml(hname)}</span>`;
+    } else if (assigned) {
       chip = `<span class="pat-chip ${assigned}" data-date="${iso}" title="クリックで切替">${chipLabel(assigned)}${sdMin?'<span class="pat-chip-min">'+sdMin+'</span>':''}</span>`;
     } else if (effective) {
       chip = `<span class="pat-chip ${effective}" data-date="${iso}" title="デフォルト。クリックで切替" style="opacity:0.6;">${chipLabel(effective)}${sdMin?'<span class="pat-chip-min">'+sdMin+'</span>':''}</span>`;
     } else if (sdMin) {
-      // パターン未設定でも短縮分数だけ示す
       chip = `<span class="pat-chip" style="background:#aaa;">短${sdMin}</span>`;
     }
     // matching TODOs for this day
@@ -3011,6 +3233,7 @@ function countPendingClasses() {
     /* Request 2 連動: 設定曜日外（土日など）でも、その日に明示的なA/B/その他割り当てがあれば集計対象 */
     const hasAssignment = !!state.dayAssignments[iso];
     if (wd >= days && !hasAssignment) continue;
+    const isHol = isHolidayAny(iso);
     for (let p = 1; p <= periods; p++) {
       const eff = getEffectiveSubject(iso, p);
       if (eff.isDeleted) continue;
@@ -3018,6 +3241,9 @@ function countPendingClasses() {
       if (!subject) continue;
       /* 期間内に時間割上で登場した科目は、残り0でも一覧に表示するため先に0で登録 */
       if (!(subject in counts)) counts[subject] = 0;
+      /* 祝日は通常授業なし扱い。ただし手動でそのコマに記録（done問わず）が入っていれば通常通り扱う */
+      const hasAnyRecord = state.records.some(r => r.date === iso && r.period === p && r.subject === subject);
+      if (isHol && !hasAnyRecord) continue;
       /* 残り授業コマ数: 「実施済み」フラグが立った記録のみを「実施済み」と数える */
       const hasDoneRecord = state.records.some(r => r.date === iso && r.period === p && r.subject === subject && r.done === true);
       if (hasDoneRecord) continue;
@@ -3463,7 +3689,7 @@ function refreshLastProgressHint() {
   }
   const r = candidates[0];
   box.className = 'hint-box';
-  let html = `<span class="hint-date">${escapeHtml(r.date || '')}${r.period?(' ('+r.period+'限)'):''}</span>${escapeHtml(r.progress)}`;
+  let html = `<div class="hint-date">${escapeHtml(r.date || '')}${r.period?(' ('+r.period+'限)'):''}</div><div>${escapeHtml(r.progress)}</div>`;
   if (r.note && r.note.trim()) {
     html += `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--line); font-size:12px; color:var(--muted);"><span style="font-weight:700; color:var(--ink);">備考:</span> ${escapeHtml(r.note)}</div>`;
   }
@@ -3985,7 +4211,6 @@ function renderProgress() {
   if (list.length === 0) {
     sel.innerHTML = '<option value="">考査対象期間が登録されていません</option>';
     $('#progressBody').innerHTML = '<div class="empty-doc-list">設定タブの「考査対象期間」で考査を追加してください。</div>';
-    $('#progressUndone').textContent = '—';
     return;
   }
   /* 終了日順でソート（古い→新しい） */
@@ -4010,38 +4235,37 @@ function renderProgressBody() {
   const sel = $('#progressExamSel');
   const ep = (state.examPeriods || []).find(x => x.id === sel.value);
   const body = $('#progressBody');
-  const undoneEl = $('#progressUndone');
-  if (!ep) { body.innerHTML = ''; undoneEl.textContent = '—'; return; }
+  if (!ep) { body.innerHTML = ''; return; }
   if (!ep.start || !ep.end) {
     body.innerHTML = '<div class="empty-doc-list">この考査の「開始日」と「終了日」を設定タブで入力してください。</div>';
-    undoneEl.textContent = '—';
     return;
   }
   const startDt = parseDate(ep.start), endDt = parseDate(ep.end);
   if (!startDt || !endDt || startDt > endDt) {
     body.innerHTML = '<div class="empty-doc-list">日付の範囲が不正です。</div>';
-    undoneEl.textContent = '—';
     return;
   }
   /* 期間内の各日各時限を走査して、科目ごとに発生順に並べる */
   const bySubject = {};
-  let undoneCount = 0;
   const cur = new Date(startDt);
   while (cur <= endDt) {
     const iso = dateStrOf(cur);
+    const isHol = isHolidayAny(iso);
     const periodCount = getEffectivePeriodCount(iso) || (state.config.periods || 6);
     for (let p = 1; p <= periodCount; p++) {
       const eff = getEffectiveSubject(iso, p);
       if (eff.isDeleted) continue;
       const subject = eff.subject;
       if (!subject) continue;
-      const rec = state.records.find(r => r.date === iso && r.period === p && r.subject === subject && r.done === true);
+      const anyRec = state.records.find(r => r.date === iso && r.period === p && r.subject === subject);
+      /* 祝日は手動入力（done問わず）がある場合のみ含める */
+      if (isHol && !anyRec) continue;
+      const doneRec = (anyRec && anyRec.done) ? anyRec : null;
       if (!bySubject[subject]) bySubject[subject] = [];
       bySubject[subject].push({
-        iso, period: p, done: !!rec,
-        progress: rec ? (rec.progress || '') : ''
+        iso, period: p, done: !!doneRec,
+        progress: doneRec ? (doneRec.progress || '') : ''
       });
-      if (!rec) undoneCount++;
     }
     cur.setDate(cur.getDate() + 1);
   }
@@ -4055,7 +4279,6 @@ function renderProgressBody() {
   });
   if (subjects.length === 0) {
     body.innerHTML = '<div class="empty-doc-list">この期間に該当する授業がありません。</div>';
-    undoneEl.textContent = '0';
     return;
   }
   const maxRows = Math.max(...subjects.map(s => bySubject[s].length));
@@ -4063,7 +4286,8 @@ function renderProgressBody() {
   subjects.forEach(s => {
     const col = getSubjectColor(s);
     const colStyle = col ? ` style="color:${escapeHtml(col)}"` : '';
-    html += `<th${colStyle}>${escapeHtml(s)}</th>`;
+    const total = bySubject[s].length;
+    html += `<th${colStyle}>${escapeHtml(s)}<div class="prog-subj-total">全${total}回</div></th>`;
   });
   html += '</tr></thead><tbody>';
   for (let r = 0; r < maxRows; r++) {
@@ -4085,12 +4309,54 @@ function renderProgressBody() {
   }
   html += '</tbody></table>';
   body.innerHTML = html;
-  undoneEl.textContent = String(undoneCount);
 }
 
 /* 考査期間切替時に再描画 */
 const _progSel = document.getElementById('progressExamSel');
 if (_progSel) _progSel.addEventListener('change', renderProgressBody);
+
+/* 期間別 実施済み集計 */
+function runProgressRange() {
+  const startIso = $('#progRangeStart').value;
+  const endIso = $('#progRangeEnd').value;
+  const out = $('#progRangeResult');
+  if (!startIso || !endIso) { out.innerHTML = '<div class="empty-doc-list">開始日と終了日の両方を入力してください。</div>'; return; }
+  if (startIso > endIso) { out.innerHTML = '<div class="empty-doc-list">開始日が終了日より後になっています。</div>'; return; }
+  /* 期間内の done=true 記録を科目別に数える */
+  const counts = {};
+  (state.records || []).forEach(r => {
+    if (!r.done) return;
+    if (!r.date || !r.subject) return;
+    if (r.date < startIso || r.date > endIso) return;
+    counts[r.subject] = (counts[r.subject] || 0) + 1;
+  });
+  /* 科目順: マスタ順優先 */
+  const masterOrder = (state.masters.subjects || []);
+  const idx = (s) => { const i = masterOrder.indexOf(s); return i < 0 ? Number.POSITIVE_INFINITY : i; };
+  const entries = Object.entries(counts).sort((a,b) => {
+    const ia = idx(a[0]), ib = idx(b[0]);
+    if (ia !== ib) return ia - ib;
+    return a[0].localeCompare(b[0],'ja');
+  });
+  if (entries.length === 0) {
+    out.innerHTML = `<div class="empty-doc-list">この期間（${escapeHtml(startIso)} 〜 ${escapeHtml(endIso)}）に実施済みの授業がありません。</div>`;
+    return;
+  }
+  let html = `<div class="help" style="margin-bottom:6px;">期間: ${escapeHtml(startIso)} 〜 ${escapeHtml(endIso)} の実施済み授業数</div>`;
+  html += '<table class="prog-range-table"><thead><tr><th>科目</th><th style="width:120px;">実施済み数</th></tr></thead><tbody>';
+  let total = 0;
+  entries.forEach(([sub, cnt]) => {
+    const col = getSubjectColor(sub);
+    const colStyle = col ? ` style="color:${escapeHtml(col)};font-weight:600"` : '';
+    html += `<tr><td${colStyle}>${escapeHtml(sub)}</td><td class="prog-range-count">${cnt}回</td></tr>`;
+    total += cnt;
+  });
+  html += `<tr><td style="font-weight:700;">合計</td><td class="prog-range-count">${total}回</td></tr>`;
+  html += '</tbody></table>';
+  out.innerHTML = html;
+}
+const _prRunBtn = $('#progRangeRun');
+if (_prRunBtn) _prRunBtn.addEventListener('click', runProgressRange);
 
 /* ========== 資料 (PDFリンク管理) ========== */
 let _editingDocId = null;
@@ -4247,6 +4513,10 @@ function renderSettings() {
   /* 時間割A/Bの適用開始日 */
   if ($('#ttAStart')) $('#ttAStart').value = getDraftStartDate('A');
   if ($('#ttBStart')) $('#ttBStart').value = getDraftStartDate('B');
+  /* 日本の祝日自動表示トグル: 既定はON */
+  if ($('#cfgAutoHolidays')) {
+    $('#cfgAutoHolidays').checked = (gsConfig().autoJpHolidays !== false);
+  }
   renderDayPeriodsGrid();
   renderCategoryGrid();
   renderExamPeriodsGrid();
@@ -4463,6 +4733,12 @@ $('#cfgPeriods').addEventListener('change', e => {
 $('#cfgLunchAfter').addEventListener('change', e => {
   ensureSettingsDraftField('config');
   _settingsDraft.config.lunchAfter = parseInt(e.target.value) || 0;
+  markSettingsDirty();
+});
+const _cfgAutoHolBox = $('#cfgAutoHolidays');
+if (_cfgAutoHolBox) _cfgAutoHolBox.addEventListener('change', () => {
+  ensureSettingsDraftField('config');
+  _settingsDraft.config.autoJpHolidays = !!_cfgAutoHolBox.checked;
   markSettingsDirty();
 });
 /* 考査追加 */
