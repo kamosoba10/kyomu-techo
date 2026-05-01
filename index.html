@@ -207,6 +207,51 @@
   }
   .exam-periods-grid .ep-del:hover { background: #ffeeee; }
   .exam-periods-grid .ep-empty { text-align: center; color: var(--muted); padding: 12px; }
+  /* 授業進度タブ */
+  .prog-undone-badge {
+    background: var(--blue); color: #fff;
+    padding: 8px 16px; border-radius: 6px;
+    font-weight: 700; font-size: 16px;
+    min-width: 60px; text-align: center;
+  }
+  #progressBody { margin-top: 12px; overflow-x: auto; }
+  table.progress-table {
+    border-collapse: collapse;
+    table-layout: auto;
+  }
+  table.progress-table th, table.progress-table td {
+    border: 1px solid var(--line);
+    padding: 6px 8px;
+    vertical-align: top;
+    font-size: 12px;
+  }
+  table.progress-table th {
+    background: #f0f4f8;
+    font-weight: 700; font-size: 13px;
+    text-align: center; min-width: 140px;
+    position: sticky; top: 0; z-index: 1;
+  }
+  table.progress-table td.prog-num, table.progress-table th.prog-num {
+    background: #f4f4f4; text-align: center;
+    font-weight: 600; min-width: 36px;
+    position: sticky; left: 0; z-index: 2;
+  }
+  table.progress-table td.prog-cell { min-width: 140px; max-width: 220px; }
+  table.progress-table td.prog-cell.done { background: #fff; }
+  table.progress-table td.prog-cell.undone { background: #fafafa; }
+  table.progress-table td.prog-empty { background: repeating-linear-gradient(
+    45deg, #fafafa, #fafafa 6px, #f0f0f0 6px, #f0f0f0 7px); }
+  table.progress-table .prog-date {
+    font-size: 11px; color: var(--muted);
+    margin-bottom: 3px; font-weight: 600;
+  }
+  table.progress-table .prog-text {
+    white-space: pre-wrap; word-break: break-word;
+    color: var(--ink); font-size: 12px;
+  }
+  table.progress-table .prog-text-empty {
+    color: #ccc; font-style: italic; font-size: 11px;
+  }
   .tt-controls {
     display: flex; gap: 10px; align-items: flex-end;
     margin-bottom: 12px; flex-wrap: wrap;
@@ -1253,6 +1298,7 @@
 <nav class="tabs">
   <button data-tab="week" class="active">週間カレンダー</button>
   <button data-tab="records">授業記録</button>
+  <button data-tab="progress">授業進度</button>
   <button data-tab="todos">todo <span class="badge" id="todoBadge" style="display:none;">0</span></button>
   <button data-tab="docs">資料</button>
   <button data-tab="calendar">月間カレンダー</button>
@@ -1455,6 +1501,24 @@
         </div>
         <div class="record-list" id="recordList"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ===== 授業進度 ===== -->
+  <section id="view-progress" class="view">
+    <div class="panel">
+      <h2>授業進度</h2>
+      <div class="settings-row">
+        <div class="field" style="flex:1;">
+          <label>考査対象期間</label>
+          <select id="progressExamSel"></select>
+        </div>
+        <div class="field" style="flex:0 0 auto;">
+          <label>未実施コマ数</label>
+          <div class="prog-undone-badge" id="progressUndone">—</div>
+        </div>
+      </div>
+      <div id="progressBody"></div>
     </div>
   </section>
 
@@ -2283,6 +2347,7 @@ function switchTab(name) {
   if (name === 'settings') { renderSettings(); renderTimetableEditor('A'); renderTimetableEditor('B'); }
   if (name === 'todos') { renderTodos(); refreshTodoCats(); }
   if (name === 'docs') { renderDocuments(); refreshDocCats(); }
+  if (name === 'progress') { renderProgress(); }
 }
 $$('nav.tabs button').forEach(b => {
   b.addEventListener('click', () => switchTab(b.dataset.tab));
@@ -3904,6 +3969,128 @@ $('#todoClearDone').addEventListener('click', () => {
   save(); renderTodos(); refreshTodoCats();
   toast('完了済みを削除しました');
 });
+
+/* ========== 授業進度タブ ========== */
+function fmtProgDate(iso) {
+  const d = parseDate(iso);
+  if (!d) return iso;
+  const wd = ['日','月','火','水','木','金','土'][d.getDay()];
+  return `${d.getMonth()+1}/${d.getDate()}(${wd})`;
+}
+
+function renderProgress() {
+  const sel = $('#progressExamSel');
+  const list = (state.examPeriods || []).slice();
+  if (!sel) return;
+  if (list.length === 0) {
+    sel.innerHTML = '<option value="">考査対象期間が登録されていません</option>';
+    $('#progressBody').innerHTML = '<div class="empty-doc-list">設定タブの「考査対象期間」で考査を追加してください。</div>';
+    $('#progressUndone').textContent = '—';
+    return;
+  }
+  /* 終了日順でソート（古い→新しい） */
+  list.sort((a,b) => (a.end||'').localeCompare(b.end||''));
+  const prevSelected = sel.value;
+  sel.innerHTML = list.map(ep => {
+    const label = `${ep.name||'(無名)'} (${ep.start||'?'}〜${ep.end||'?'})`;
+    return `<option value="${escapeHtml(ep.id)}">${escapeHtml(label)}</option>`;
+  }).join('');
+  /* 既選択を保持。なければ "今日に最も近い未来の終了日を持つ考査" を選択 */
+  if (prevSelected && list.some(x => x.id === prevSelected)) {
+    sel.value = prevSelected;
+  } else {
+    const today = todayStr();
+    const upcoming = list.find(x => x.end && x.end >= today);
+    sel.value = (upcoming || list[list.length-1]).id;
+  }
+  renderProgressBody();
+}
+
+function renderProgressBody() {
+  const sel = $('#progressExamSel');
+  const ep = (state.examPeriods || []).find(x => x.id === sel.value);
+  const body = $('#progressBody');
+  const undoneEl = $('#progressUndone');
+  if (!ep) { body.innerHTML = ''; undoneEl.textContent = '—'; return; }
+  if (!ep.start || !ep.end) {
+    body.innerHTML = '<div class="empty-doc-list">この考査の「開始日」と「終了日」を設定タブで入力してください。</div>';
+    undoneEl.textContent = '—';
+    return;
+  }
+  const startDt = parseDate(ep.start), endDt = parseDate(ep.end);
+  if (!startDt || !endDt || startDt > endDt) {
+    body.innerHTML = '<div class="empty-doc-list">日付の範囲が不正です。</div>';
+    undoneEl.textContent = '—';
+    return;
+  }
+  /* 期間内の各日各時限を走査して、科目ごとに発生順に並べる */
+  const bySubject = {};
+  let undoneCount = 0;
+  const cur = new Date(startDt);
+  while (cur <= endDt) {
+    const iso = dateStrOf(cur);
+    const periodCount = getEffectivePeriodCount(iso) || (state.config.periods || 6);
+    for (let p = 1; p <= periodCount; p++) {
+      const eff = getEffectiveSubject(iso, p);
+      if (eff.isDeleted) continue;
+      const subject = eff.subject;
+      if (!subject) continue;
+      const rec = state.records.find(r => r.date === iso && r.period === p && r.subject === subject && r.done === true);
+      if (!bySubject[subject]) bySubject[subject] = [];
+      bySubject[subject].push({
+        iso, period: p, done: !!rec,
+        progress: rec ? (rec.progress || '') : ''
+      });
+      if (!rec) undoneCount++;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  /* 科目順: マスタの並び順を優先、それ以外は科目名順 */
+  const masterOrder = (state.masters.subjects || []);
+  const idx = (s) => { const i = masterOrder.indexOf(s); return i < 0 ? Number.POSITIVE_INFINITY : i; };
+  const subjects = Object.keys(bySubject).sort((a,b) => {
+    const ia = idx(a), ib = idx(b);
+    if (ia !== ib) return ia - ib;
+    return a.localeCompare(b,'ja');
+  });
+  if (subjects.length === 0) {
+    body.innerHTML = '<div class="empty-doc-list">この期間に該当する授業がありません。</div>';
+    undoneEl.textContent = '0';
+    return;
+  }
+  const maxRows = Math.max(...subjects.map(s => bySubject[s].length));
+  let html = '<table class="progress-table"><thead><tr><th class="prog-num">#</th>';
+  subjects.forEach(s => {
+    const col = getSubjectColor(s);
+    const colStyle = col ? ` style="color:${escapeHtml(col)}"` : '';
+    html += `<th${colStyle}>${escapeHtml(s)}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+  for (let r = 0; r < maxRows; r++) {
+    html += `<tr><td class="prog-num">${r+1}</td>`;
+    subjects.forEach(s => {
+      const item = bySubject[s][r];
+      if (!item) { html += '<td class="prog-empty"></td>'; return; }
+      const dateLabel = `${fmtProgDate(item.iso)} ${item.period}限`;
+      if (item.done) {
+        const progHtml = item.progress
+          ? escapeHtml(item.progress)
+          : '<span class="prog-text-empty">（進度未記入）</span>';
+        html += `<td class="prog-cell done"><div class="prog-date">${escapeHtml(dateLabel)}</div><div class="prog-text">${progHtml}</div></td>`;
+      } else {
+        html += `<td class="prog-cell undone"><div class="prog-date">${escapeHtml(dateLabel)}</div><div class="prog-text-empty">未実施</div></td>`;
+      }
+    });
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  body.innerHTML = html;
+  undoneEl.textContent = String(undoneCount);
+}
+
+/* 考査期間切替時に再描画 */
+const _progSel = document.getElementById('progressExamSel');
+if (_progSel) _progSel.addEventListener('change', renderProgressBody);
 
 /* ========== 資料 (PDFリンク管理) ========== */
 let _editingDocId = null;
