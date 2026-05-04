@@ -382,6 +382,99 @@
   .pat-A table.timetable td.period-head { background: var(--pat-a-bg); color: var(--pat-a); }
   .pat-B table.timetable td.period-head { background: var(--pat-b-bg); color: var(--pat-b); }
   table.timetable tr[data-special] td.period-head { background: #dcdcdc; }
+  /* 1日の予定タブ */
+  .dayplan-nav {
+    display: flex; gap: 10px; align-items: center;
+    padding: 10px 12px;
+    background: var(--blue-soft); border: 1px solid #cfdcec;
+    border-radius: 6px; flex-wrap: wrap;
+  }
+  .dp-schedule-table {
+    border-collapse: collapse; width: 100%; max-width: 720px;
+    margin-top: 6px;
+  }
+  .dp-schedule-table th, .dp-schedule-table td {
+    border: 1px solid var(--line); padding: 8px 12px;
+    font-size: 13px; vertical-align: middle;
+  }
+  .dp-schedule-table th { background: #f4f4f4; width: 80px; text-align: center; font-weight: 600; }
+  .dp-schedule-table .dp-subj { font-weight: 600; }
+  .dp-schedule-table .dp-empty { color: var(--muted); font-style: italic; }
+  .dp-schedule-table tr.dp-done td.dp-subj::before { content: '✓ '; color: var(--blue); font-weight: 700; }
+  .dp-todos-list {
+    list-style: none; padding: 0; margin: 6px 0; display: flex;
+    flex-direction: column; gap: 6px;
+  }
+  .dp-todo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border: 1px solid var(--line); border-radius: 5px;
+    background: #fff;
+  }
+  .dp-todo.done { opacity: 0.55; background: #f3f3f3; }
+  .dp-todo.done .dp-todo-title { text-decoration: line-through; }
+  .dp-todo input[type="checkbox"] { transform: scale(1.4); margin: 2px 4px; }
+  .dp-todo .dp-todo-title { flex: 1 1 auto; font-size: 14px; }
+  .dp-todos-empty { color: var(--muted); font-style: italic; padding: 6px 0; font-size: 13px; }
+  /* ミニ月間カレンダー（週間カレンダータブ内） */
+  .mini-cal-wrap {
+    margin-bottom: 12px;
+    background: #fff; border: 1px solid var(--line); border-radius: 6px;
+    padding: 8px;
+    display: inline-block;
+  }
+  .mini-cal-head {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; margin-bottom: 4px;
+  }
+  .mini-cal-head .mini-cal-label {
+    font-weight: 700; color: var(--accent); font-size: 14px;
+    min-width: 110px; text-align: center;
+  }
+  .mini-cal-head .mini-cal-nav {
+    background: #fff; border: 1px solid var(--line); border-radius: 4px;
+    padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: inherit;
+    min-height: 32px; min-width: 36px;
+  }
+  .mini-cal-head .mini-cal-nav:hover { background: var(--accent-soft); }
+  table.mini-cal { border-collapse: collapse; }
+  table.mini-cal th, table.mini-cal td {
+    width: 28px; height: 26px; text-align: center;
+    font-size: 11px; padding: 0;
+  }
+  table.mini-cal th { color: var(--muted); font-weight: 600; }
+  table.mini-cal th.mc-sun { color: #c44; }
+  table.mini-cal th.mc-sat { color: #39a; }
+  table.mini-cal td.mc-day {
+    cursor: pointer; border-radius: 3px;
+    border: 1px solid transparent;
+  }
+  table.mini-cal td.mc-day:hover { background: var(--accent-soft); }
+  table.mini-cal td.mc-day.mc-empty { color: #ccc; cursor: default; }
+  table.mini-cal td.mc-day.mc-today { background: #fff3c4; font-weight: 700; }
+  table.mini-cal td.mc-day.mc-week { background: var(--accent-soft); border-color: var(--accent); }
+  table.mini-cal td.mc-day.mc-sun { color: #c44; }
+  table.mini-cal td.mc-day.mc-sat { color: #39a; }
+  table.mini-cal td.mc-day.mc-holiday { background: #ffe5e5; }
+  /* 時間割編集セル用ボタン（モーダル選択トリガ） */
+  .tt-cell-btn {
+    width: 100%; min-height: 36px;
+    background: #fff; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 6px 8px; font-size: 14px;
+    cursor: pointer; font-family: inherit;
+    text-align: center;
+  }
+  .tt-cell-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+  .tt-cell-btn .tt-cell-empty { color: var(--muted); font-style: italic; font-size: 12px; }
+  /* 時間割セル用ピッカー */
+  .tt-pick-list { padding: 4px 0; }
+  .tt-pick-opt {
+    padding: 11px 16px; cursor: pointer;
+    border-bottom: 1px solid #f3f3f3; font-size: 14px;
+  }
+  .tt-pick-opt.tt-pick-clear { color: var(--red); font-style: italic; }
+  .tt-pick-opt.cur { background: var(--accent-soft); font-weight: 600; }
+  .tt-pick-opt:hover, .tt-pick-opt:active { background: var(--accent-soft); }
   .subject-input {
     border: 1px solid transparent;
     background: transparent; padding: 3px 4px;
@@ -615,26 +708,37 @@
     overflow: auto;
     box-sizing: border-box;
   }
-  table.week-grid tr[data-special] textarea.day-note-input { height: 30px; }
-  table.week-grid textarea.day-note-input:hover { background: #f4f4f4; }
+  table.week-grid tr[data-special] td { padding: 0; }   /* セル全体を塗りで埋めるため */
+  table.week-grid tr[data-special] textarea.day-note-input { height: 100%; padding: 4px 6px; }
+  table.week-grid textarea.day-note-input:hover { background: rgba(0,0,0,0.04); }
   table.week-grid textarea.day-note-input:focus {
     outline: none;
     border-color: var(--accent);
     background: #fff;
   }
+  /* 始業前・昼休み・放課後 — セル全面グレー */
+  table.week-grid tr[data-special="before"] td:not(.period-head),
+  table.week-grid tr[data-special="lunch"] td:not(.period-head),
+  table.week-grid tr[data-special="after"] td:not(.period-head) {
+    background: #ececec;
+  }
   table.week-grid tr[data-special="before"] textarea.day-note-input,
   table.week-grid tr[data-special="lunch"] textarea.day-note-input,
   table.week-grid tr[data-special="after"] textarea.day-note-input {
-    background: #f4f4f4;
+    background: transparent;
   }
   table.week-grid tr[data-special="before"] textarea.day-note-input:focus,
   table.week-grid tr[data-special="lunch"] textarea.day-note-input:focus,
   table.week-grid tr[data-special="after"] textarea.day-note-input:focus {
     background: #fff;
   }
+  /* 予定 — セル全面青 */
   table.week-grid tr[data-special="plan"] td.period-head { background: var(--blue-soft); color: var(--blue); }
+  table.week-grid tr[data-special="plan"] td:not(.period-head) {
+    background: #d8e3f2;
+  }
   table.week-grid tr[data-special="plan"] textarea.day-note-input {
-    background: #f2f7fc;
+    background: transparent;
     font-weight: 600; color: var(--blue);
     text-align: center;
   }
@@ -869,6 +973,39 @@
     .doc-edit-form { grid-template-columns: 2fr 1fr 2fr auto auto; align-items: center; }
   }
   .doc-edit-form input { width: 100%; box-sizing: border-box; }
+  /* 授業記録ポップアップ */
+  .rec-modal-bg {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 350; display: none;
+    align-items: flex-start; justify-content: center;
+    padding: 20px; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rec-modal-bg.show { display: flex; }
+  .rec-modal {
+    background: #fff;
+    width: min(720px, 100%); max-width: 100%;
+    border-radius: 8px; box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .rec-modal-head {
+    background: var(--accent); color: #fff;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+    position: sticky; top: 0; z-index: 1;
+  }
+  .rec-modal-head .rec-modal-title {
+    flex: 1 1 auto; font-weight: 600; font-size: 15px;
+  }
+  .rec-modal-head button {
+    background: rgba(255,255,255,0.18); color: #fff; border: none;
+    padding: 8px 14px; border-radius: 4px; font-size: 13px;
+    cursor: pointer; font-family: inherit;
+  }
+  .rec-modal-head button:hover { background: rgba(255,255,255,0.30); }
+  .rec-modal-body { padding: 14px 18px; }
+
   /* 資料ビューア（フルスクリーンオーバーレイ） */
   .doc-viewer-bg {
     position: fixed; inset: 0; background: rgba(0,0,0,0.7);
@@ -1392,7 +1529,6 @@
 <header>
   <h1>教務手帳<span class="header-year" id="headerYear">—</span></h1>
   <div class="h-meta">
-    <span class="h-todo zero" id="headerTodo">未完了todo 0</span>
     <span class="h-savestat dirty" id="headerSaveStat" title="最終保存からの経過時間">未保存</span>
     <button class="h-syncbtn" id="headerImportBtn" type="button" title="JSONをインポート（読込）">読込</button>
     <button class="h-syncbtn primary" id="headerExportBtn" type="button" title="JSONをエクスポート（保存）">保存</button>
@@ -1401,11 +1537,10 @@
 
 <nav class="tabs">
   <button data-tab="week" class="active">週間カレンダー</button>
-  <button data-tab="records">授業記録</button>
+  <button data-tab="dayplan">1日の予定</button>
   <button data-tab="progress">授業進度</button>
   <button data-tab="todos">todo <span class="badge" id="todoBadge" style="display:none;">0</span></button>
   <button data-tab="docs">資料</button>
-  <button data-tab="calendar">月間カレンダー</button>
   <button data-tab="settings">設定</button>
 </nav>
 
@@ -1514,93 +1649,33 @@
         <button class="btn secondary small" onclick="window.print()">印刷</button>
         <button class="btn secondary" id="weekNext" style="margin-left:auto;">次週 ▶</button>
       </div>
+      <div class="mini-cal-wrap no-print">
+        <div class="mini-cal-head">
+          <button type="button" class="mini-cal-nav" id="miniCalPrev">◀</button>
+          <span class="mini-cal-label" id="miniCalLabel">—</span>
+          <button type="button" class="mini-cal-nav" id="miniCalNext">▶</button>
+        </div>
+        <table class="mini-cal" id="miniCalGrid"></table>
+      </div>
       <table class="week-grid" id="weekGrid"></table>
     </div>
   </section>
 
-  <!-- ===== 授業記録 ===== -->
-  <section id="view-records" class="view">
-    <div class="rec-grid">
-      <div class="panel">
-        <h2 id="formTitle">新規授業記録</h2>
-        <input type="hidden" id="recId">
-        <div class="form-row">
-          <div class="field">
-            <label>日付</label>
-            <div id="recDateDisp" class="readonly-disp">—</div>
-            <input id="recDate" type="hidden">
-          </div>
-          <div class="field">
-            <label>時限</label>
-            <div id="recPeriodDisp" class="readonly-disp">—</div>
-            <input id="recPeriod" type="hidden">
-          </div>
-        </div>
-        <div class="form-row one">
-          <div class="field">
-            <label>科目</label>
-            <button type="button" id="recSubjectBtn" class="subj-select-btn">
-              <span id="recSubjectDisp" class="subj-disp-empty">タップして科目を選ぶ</span>
-              <span class="subj-arrow">▼</span>
-            </button>
-            <input id="recSubject" type="hidden">
-          </div>
-        </div>
-        <div class="form-row one">
-          <div class="field">
-            <label>直近の進度（参考）</label>
-            <div id="recLastProgress" class="hint-box">—</div>
-          </div>
-        </div>
-        <div class="form-row one">
-          <div class="field">
-            <label>この授業でやることメモ（この日のこの時限のみ）</label>
-            <textarea id="recTodoMemo" class="hint-box-input"></textarea>
-          </div>
-        </div>
-        <div class="form-row one">
-          <div class="field">
-            <label>進度</label>
-            <textarea id="recProgress" placeholder="扱った単元、進んだ範囲など"></textarea>
-          </div>
-        </div>
-        <div class="form-row one">
-          <div class="field">
-            <label>備考</label>
-            <textarea id="recNote" placeholder="気づき、生徒の反応、次回への申し送りなど"></textarea>
-          </div>
-        </div>
-        <div class="btn-row">
-          <button class="btn" id="recComplete" title="授業を実施済みとして記録（週間カレンダーに✓が付きます）">✓ 実施済み</button>
-          <button class="btn secondary" id="recSave" title="授業内容を登録（週間カレンダーには✓は付きません）">授業を登録</button>
-          <button class="btn secondary" id="recNew">新規</button>
-          <button class="btn danger" id="recDelete">記録を削除</button>
-        </div>
-        <div class="btn-row" style="margin-top:6px;">
-          <button class="btn secondary small" id="recDeletePeriod" title="この日・時限の授業コマを週間カレンダーから非表示にします">このコマを削除（週間カレンダーから）</button>
-          <button class="btn secondary small" id="recResetPeriod" title="この日・時限を時間割A/Bの元の科目に戻します">時間割どおりに戻す</button>
-        </div>
+  <!-- ===== 1日の予定 ===== -->
+  <section id="view-dayplan" class="view">
+    <div class="panel">
+      <div class="dayplan-nav no-print">
+        <button class="btn secondary" id="dayplanPrev">◀ 前日</button>
+        <div class="cal-label" id="dayplanLabel">—</div>
+        <button class="btn secondary small" id="dayplanToday">今日</button>
+        <button class="btn secondary" id="dayplanNext" style="margin-left:auto;">翌日 ▶</button>
       </div>
-
-      <div class="panel">
-        <h2>記録一覧</h2>
-        <input class="search-box" id="recSearch" type="text" placeholder="キーワード検索">
-        <div class="settings-row" style="margin-bottom:10px;">
-          <div class="field" style="flex:1;">
-            <label>並び順</label>
-            <select id="recSort">
-              <option value="date-desc">日付の新しい順</option>
-              <option value="date-asc">日付の古い順</option>
-              <option value="subject">科目順</option>
-            </select>
-          </div>
-          <div class="field" style="flex:1;">
-            <label>科目で絞り込み</label>
-            <select id="recFilterSubject"><option value="">すべて</option></select>
-          </div>
-        </div>
-        <div class="record-list" id="recordList"></div>
-      </div>
+      <h3 style="margin-top:14px; font-size:14px;">時間割</h3>
+      <div id="dayplanSchedule"></div>
+      <h3 style="margin-top:14px; font-size:14px;">この日のtodo</h3>
+      <div id="dayplanTodos"></div>
+      <h3 style="margin-top:14px; font-size:14px;">この日のメモ</h3>
+      <textarea id="dayplanMemo" class="hint-box-input" style="min-height:80px;" placeholder="この日のメモ（自由記入）"></textarea>
     </div>
   </section>
 
@@ -1903,6 +1978,82 @@
 <!-- ソフトキーボードを閉じるためのフローティングボタン（iPadで活躍） -->
 <button type="button" class="kbd-dismiss" id="kbdDismissBtn" aria-label="キーボードを閉じる" title="キーボードを閉じる">⌨ 閉じる</button>
 
+<!-- 時間割セル用 科目ピッカー -->
+<div class="subj-modal-bg" id="ttPickModalBg">
+  <div class="subj-modal" role="dialog">
+    <h3>科目を選ぶ <button type="button" id="ttPickClose">閉じる ✕</button></h3>
+    <div class="subj-modal-search">
+      <input type="search" id="ttPickSearch" placeholder="絞り込み" autocomplete="off">
+    </div>
+    <div class="subj-modal-list" id="ttPickList"></div>
+  </div>
+</div>
+
+<!-- 授業記録ポップアップ -->
+<div class="rec-modal-bg" id="recordModalBg">
+  <div class="rec-modal">
+    <div class="rec-modal-head">
+      <span class="rec-modal-title" id="recModalTitle">授業記録</span>
+      <button type="button" id="recModalClose">閉じる ✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <input type="hidden" id="recId">
+      <div class="form-row">
+        <div class="field">
+          <label>日付</label>
+          <div id="recDateDisp" class="readonly-disp">—</div>
+          <input id="recDate" type="hidden">
+        </div>
+        <div class="field">
+          <label>時限</label>
+          <div id="recPeriodDisp" class="readonly-disp">—</div>
+          <input id="recPeriod" type="hidden">
+        </div>
+      </div>
+      <div class="form-row one">
+        <div class="field">
+          <label>科目</label>
+          <div id="recSubjectDisp" class="readonly-disp">—</div>
+          <input id="recSubject" type="hidden">
+        </div>
+      </div>
+      <div class="form-row one">
+        <div class="field">
+          <label>前回からの申し送り（直近の進度・申し送り）</label>
+          <div id="recLastProgress" class="hint-box">—</div>
+        </div>
+      </div>
+      <div class="form-row one">
+        <div class="field">
+          <label>この授業でやることメモ（この日のこの時限のみ）</label>
+          <textarea id="recTodoMemo" class="hint-box-input"></textarea>
+        </div>
+      </div>
+      <div class="form-row one">
+        <div class="field">
+          <label>進度</label>
+          <textarea id="recProgress" placeholder="扱った単元、進んだ範囲など"></textarea>
+        </div>
+      </div>
+      <div class="form-row one">
+        <div class="field">
+          <label>次回への申し送り</label>
+          <textarea id="recNote" placeholder="次回授業で表示されます（覚えておきたいこと、伝えたいこと等）"></textarea>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="recComplete" title="授業を実施済みとして記録（週間カレンダーに✓が付きます）">✓ 実施済み</button>
+        <button class="btn secondary" id="recSave" title="授業内容を登録（週間カレンダーには✓は付きません）">授業を登録</button>
+        <button class="btn danger" id="recDelete">記録を削除</button>
+      </div>
+      <div class="btn-row" style="margin-top:6px;">
+        <button class="btn secondary small" id="recDeletePeriod" title="この日・時限の授業コマを週間カレンダーから非表示にします">このコマを削除</button>
+        <button class="btn secondary small" id="recResetPeriod" title="この日・時限を時間割A/Bの元の科目に戻します">時間割どおりに戻す</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- 資料(PDF)閲覧オーバーレイ -->
 <div class="doc-viewer-bg" id="docViewerBg">
   <div class="doc-viewer">
@@ -2083,7 +2234,8 @@ function defaultData() {
     classMemos: {},            /* 新: 単発授業ごとのメモ key='YYYY-MM-DD|期|科目' */
     documents: [],             /* 資料: { id, title, category, src, addedAt } */
     examDate: '',              /* 旧: 互換のため残す */
-    examPeriods: []            /* 新: [{ id, name, start, end }] */
+    examPeriods: [],           /* 新: [{ id, name, start, end }] */
+    dayMemos: {}               /* 1日の予定タブ用メモ key=ISO */
   };
 }
 
@@ -2331,12 +2483,6 @@ function toast(msg) {
 }
 
 function updateHeaderStatus() {
-  const td = state.todos.filter(t => !t.done).length;
-  const tEl = $('#headerTodo');
-  if (tEl) {
-    tEl.textContent = `未完了todo ${td}`;
-    tEl.classList.toggle('zero', td === 0);
-  }
   const hy = $('#headerYear');
   if (hy) hy.textContent = `${allData.currentYear}年度`;
   /* 保存状態のインジケータ */
@@ -2367,8 +2513,11 @@ function updateHeaderStatus() {
   }
 }
 function updateTodoBadge() {
-  const n = state.todos.filter(t => !t.done).length;
+  /* 黒以外の色（赤・青）が設定された未完了todoのみカウント */
+  const DEFAULT_COLOR = '#222222';
+  const n = state.todos.filter(t => !t.done && t.color && t.color !== DEFAULT_COLOR).length;
   const b = $('#todoBadge');
+  if (!b) return;
   if (n > 0) { b.style.display = 'inline-block'; b.textContent = n; }
   else b.style.display = 'none';
 }
@@ -2560,13 +2709,14 @@ function switchTab(name) {
   $$('main .view').forEach(v => v.classList.remove('active'));
   document.querySelector(`nav.tabs button[data-tab="${name}"]`).classList.add('active');
   $('#view-' + name).classList.add('active');
-  if (name === 'calendar') renderCalendar();
+  /* calendar タブは廃止。設定タブに移動済みなので、設定を開いた時にカレンダーも描画 */
   if (name === 'week') renderWeek();
-  if (name === 'records') { renderRecords(); refreshDatalists(); }
-  if (name === 'settings') { renderSettings(); renderTimetableEditor('A'); renderTimetableEditor('B'); }
+  /* records タブは廃止（ポップアップに統合） */
+  if (name === 'settings') { renderSettings(); renderTimetableEditor('A'); renderTimetableEditor('B'); renderCalendar(); }
   if (name === 'todos') { renderTodos(); refreshTodoCats(); }
   if (name === 'docs') { renderDocuments(); refreshDocCats(); }
   if (name === 'progress') { renderExamCountPanel(); renderProgress(); }
+  if (name === 'dayplan') { renderDayplan(); }
 }
 $$('nav.tabs button').forEach(b => {
   b.addEventListener('click', () => switchTab(b.dataset.tab));
@@ -2612,7 +2762,7 @@ function renderTimetableEditor(key) {
       row += `
         <td>
           <div class="cell">
-            <input list="subjectList" data-pat="${key}" data-key="${cellKey}" data-field="subject" class="subject-input" placeholder="科目" value="${escapeHtml(draftVal)}">
+            <button type="button" class="tt-cell-btn" data-pat="${key}" data-key="${cellKey}">${draftVal ? escapeHtml(draftVal) : '<span class="tt-cell-empty">タップ</span>'}</button>
           </div>
         </td>`;
     }
@@ -2632,18 +2782,64 @@ function renderTimetableEditor(key) {
 
   tbl.innerHTML = html;
 
-  // wire events — 入力は draft に書く（保存ボタンが押されるまで state.timetables には反映しない）
-  tbl.querySelectorAll('.subject-input').forEach(inp => {
-    inp.addEventListener('input', () => {
-      const k = inp.dataset.pat;
-      const cellKey = inp.dataset.key;
-      _ttDraft[k].cells[cellKey] = inp.value;
-      markTtDirty(k);
+  // wire events — セルボタンをクリックでモーダル選択。draftに書き込み（保存まで反映しない）
+  tbl.querySelectorAll('.tt-cell-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.pat;
+      const cellKey = btn.dataset.key;
+      openTtCellPicker(k, cellKey);
     });
   });
   /* 保存状態インジケータの初期描画 */
   updateTtSaveStatus(key);
 }
+
+/* 時間割セル用の科目ピッカー — マスタから選択、空欄(削除)も可能 */
+let _ttPickTarget = null;
+function openTtCellPicker(key, cellKey) {
+  _ttPickTarget = { key, cellKey };
+  const subjects = (state.masters.subjects || []).slice().sort((a,b) => a.localeCompare(b,'ja'));
+  const cur = getDraftCellValue(key, cellKey) || '';
+  let html = '<div class="tt-pick-list">';
+  /* 空欄選択肢（削除） */
+  html += `<div class="tt-pick-opt tt-pick-clear${!cur?' cur':''}" data-v="">（空欄にする）</div>`;
+  subjects.forEach(s => {
+    const isCur = s === cur;
+    html += `<div class="tt-pick-opt${isCur?' cur':''}" data-v="${escapeHtml(s)}">${escapeHtml(s)}</div>`;
+  });
+  html += '</div>';
+  $('#ttPickList').innerHTML = html;
+  $('#ttPickSearch').value = '';
+  $('#ttPickModalBg').classList.add('show');
+  $('#ttPickList').querySelectorAll('.tt-pick-opt').forEach(el => {
+    el.addEventListener('click', () => {
+      if (!_ttPickTarget) return;
+      const v = el.dataset.v;
+      _ttDraft[_ttPickTarget.key].cells[_ttPickTarget.cellKey] = v;
+      markTtDirty(_ttPickTarget.key);
+      renderTimetableEditor(_ttPickTarget.key);
+      closeTtPicker();
+    });
+  });
+}
+function closeTtPicker() {
+  $('#ttPickModalBg').classList.remove('show');
+  _ttPickTarget = null;
+}
+const _ttPickClose = $('#ttPickClose');
+if (_ttPickClose) _ttPickClose.addEventListener('click', closeTtPicker);
+const _ttPickBg = $('#ttPickModalBg');
+if (_ttPickBg) _ttPickBg.addEventListener('click', (e) => {
+  if (e.target.id === 'ttPickModalBg') closeTtPicker();
+});
+const _ttPickSearch = $('#ttPickSearch');
+if (_ttPickSearch) _ttPickSearch.addEventListener('input', (e) => {
+  const q = (e.target.value || '').toLowerCase().trim();
+  $('#ttPickList').querySelectorAll('.tt-pick-opt').forEach(el => {
+    const v = el.dataset.v || '';
+    el.style.display = (!q || v.toLowerCase().includes(q) || el.classList.contains('tt-pick-clear')) ? '' : 'none';
+  });
+});
 
 /* 時間割セル変更時の過去日スナップショット（履歴保護） */
 function snapshotPastSubjectsForCell(key, weekday, period, oldSubject) {
@@ -2932,6 +3128,190 @@ function cyclePattern(iso) {
 }
 
 /* ========== 週間カレンダー ========== */
+/* ========== 「1日の予定」タブ ========== */
+let _dayplanIso = null;   /* 表示中の日付 ISO */
+function setDayplanDate(iso) {
+  _dayplanIso = iso;
+  renderDayplan();
+}
+function renderDayplan() {
+  if (!_dayplanIso) _dayplanIso = todayStr();
+  const iso = _dayplanIso;
+  const dt = parseDate(iso);
+  if (!dt) return;
+  const wdLabel = ['日','月','火','水','木','金','土'][dt.getDay()];
+  const dispLabel = `${dt.getFullYear()}年${dt.getMonth()+1}月${dt.getDate()}日(${wdLabel})`;
+  const hname = getHolidayLabel(iso);
+  const lbl = $('#dayplanLabel');
+  if (lbl) lbl.innerHTML = escapeHtml(dispLabel) + (hname ? ` <span style="color:#c44;font-weight:700;">[${escapeHtml(hname)}]</span>` : '');
+  /* 時間割 */
+  const periodCount = getEffectivePeriodCount(iso) || (state.config.periods || 6);
+  let schedHtml = '<table class="dp-schedule-table"><thead><tr><th>時限</th><th>科目</th><th>状態</th></tr></thead><tbody>';
+  let any = false;
+  for (let p = 1; p <= periodCount; p++) {
+    const eff = getEffectiveSubject(iso, p);
+    if (eff.isDeleted) continue;
+    const subject = eff.subject;
+    if (!subject) continue;
+    any = true;
+    const rec = state.records.find(r => r.date === iso && r.period === p && r.subject === subject);
+    const isDone = rec && rec.done;
+    const trCls = isDone ? 'dp-done' : '';
+    const status = isDone ? '実施済み' : (rec ? '登録済み' : '未実施');
+    const col = getSubjectColor(subject);
+    const colStyle = col ? `style="color:${escapeHtml(col)}"` : '';
+    schedHtml += `<tr class="${trCls}" data-period="${p}" data-subject="${escapeHtml(subject)}">
+      <td style="text-align:center;">${p}限</td>
+      <td class="dp-subj" ${colStyle}>${escapeHtml(subject)}</td>
+      <td style="text-align:center; font-size:12px; color:${isDone?'var(--blue)':'var(--muted)'};">${status}</td>
+    </tr>`;
+  }
+  if (!any) {
+    schedHtml += '<tr><td colspan="3" class="dp-empty" style="text-align:center;">この日に授業はありません</td></tr>';
+  }
+  schedHtml += '</tbody></table>';
+  $('#dayplanSchedule').innerHTML = schedHtml;
+  /* セル行クリックで授業記録ポップアップ */
+  $('#dayplanSchedule').querySelectorAll('tr[data-period]').forEach(tr => {
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => {
+      gotoRecord(iso, parseInt(tr.dataset.period), '', tr.dataset.subject);
+    });
+  });
+  /* todo */
+  const todos = (state.todos || []).filter(t => t.due === iso).sort((a,b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    return (a.created||'').localeCompare(b.created||'');
+  });
+  let todosHtml = '';
+  if (todos.length === 0) {
+    todosHtml = '<div class="dp-todos-empty">この日に期限が設定されたtodoはありません</div>';
+  } else {
+    todosHtml = '<ul class="dp-todos-list">' + todos.map(t => {
+      const color = t.color || '#222222';
+      return `<li class="dp-todo${t.done?' done':''}" data-id="${t.id}">
+        <input type="checkbox" ${t.done?'checked':''} data-id="${t.id}">
+        <span class="dp-todo-title" style="color:${escapeHtml(color)};">${escapeHtml(t.title)}</span>
+      </li>`;
+    }).join('') + '</ul>';
+  }
+  $('#dayplanTodos').innerHTML = todosHtml;
+  $('#dayplanTodos').querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const id = cb.dataset.id;
+      const t = state.todos.find(x => x.id === id);
+      if (!t) return;
+      t.done = !t.done;
+      t.completedAt = t.done ? new Date().toISOString() : null;
+      save(); renderDayplan();
+      updateTodoBadge();
+    });
+  });
+  /* メモ */
+  if (!state.dayMemos) state.dayMemos = {};
+  const memo = state.dayMemos[iso] || '';
+  $('#dayplanMemo').value = memo;
+}
+const _dayplanMemoEl = $('#dayplanMemo');
+let _dayplanMemoTimer = null;
+if (_dayplanMemoEl) _dayplanMemoEl.addEventListener('input', () => {
+  if (!_dayplanIso) return;
+  if (!state.dayMemos) state.dayMemos = {};
+  const v = _dayplanMemoEl.value;
+  if (v) state.dayMemos[_dayplanIso] = v;
+  else delete state.dayMemos[_dayplanIso];
+  if (_dayplanMemoTimer) clearTimeout(_dayplanMemoTimer);
+  _dayplanMemoTimer = setTimeout(save, 400);
+});
+const _dayplanPrev = $('#dayplanPrev');
+if (_dayplanPrev) _dayplanPrev.addEventListener('click', () => {
+  if (!_dayplanIso) return;
+  const d = parseDate(_dayplanIso); d.setDate(d.getDate() - 1);
+  setDayplanDate(dateStrOf(d));
+});
+const _dayplanNext = $('#dayplanNext');
+if (_dayplanNext) _dayplanNext.addEventListener('click', () => {
+  if (!_dayplanIso) return;
+  const d = parseDate(_dayplanIso); d.setDate(d.getDate() + 1);
+  setDayplanDate(dateStrOf(d));
+});
+const _dayplanToday = $('#dayplanToday');
+if (_dayplanToday) _dayplanToday.addEventListener('click', () => setDayplanDate(todayStr()));
+
+/* ミニ月間カレンダー: 週間カレンダータブ内 */
+let _miniCalMonth = null;  /* { y, m } 現在表示中の年月 */
+function renderMiniCal() {
+  const grid = $('#miniCalGrid');
+  const lbl = $('#miniCalLabel');
+  if (!grid || !lbl) return;
+  if (!_miniCalMonth) {
+    const m = viewedWeekMonday;
+    _miniCalMonth = { y: m.getFullYear(), m: m.getMonth() };
+  }
+  const y = _miniCalMonth.y, m = _miniCalMonth.m;
+  lbl.textContent = `${y}年${m+1}月`;
+  const first = new Date(y, m, 1);
+  const last = new Date(y, m+1, 0);
+  const startWd = ourWeekday(first);  /* 0=月..6=日 */
+  const numDays = last.getDate();
+  const todayIso = todayStr();
+  const weekStartIso = dateStrOf(viewedWeekMonday);
+  const weekEndDt = new Date(viewedWeekMonday); weekEndDt.setDate(weekEndDt.getDate() + 6);
+  const weekEndIso = dateStrOf(weekEndDt);
+  let html = '<thead><tr>';
+  ['月','火','水','木','金','土','日'].forEach((d,i) => {
+    const cls = i===5 ? 'mc-sat' : i===6 ? 'mc-sun' : '';
+    html += `<th class="${cls}">${d}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+  let cur = 1 - startWd;
+  while (cur <= numDays) {
+    html += '<tr>';
+    for (let i=0; i<7; i++, cur++) {
+      if (cur < 1 || cur > numDays) {
+        html += '<td class="mc-day mc-empty"></td>';
+      } else {
+        const dt = new Date(y, m, cur);
+        const iso = dateStrOf(dt);
+        const isToday = iso === todayIso;
+        const inWeek = iso >= weekStartIso && iso <= weekEndIso;
+        const isHol = isHolidayAny(iso);
+        const wdCls = i===5 ? ' mc-sat' : i===6 ? ' mc-sun' : '';
+        const todayCls = isToday ? ' mc-today' : '';
+        const weekCls = inWeek ? ' mc-week' : '';
+        const holCls = isHol ? ' mc-holiday' : '';
+        html += `<td class="mc-day${wdCls}${todayCls}${weekCls}${holCls}" data-iso="${iso}">${cur}</td>`;
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  grid.innerHTML = html;
+  grid.querySelectorAll('td.mc-day:not(.mc-empty)').forEach(td => {
+    td.addEventListener('click', () => {
+      const iso = td.dataset.iso;
+      const dt = parseDate(iso);
+      if (!dt) return;
+      viewedWeekMonday = weekMondayOf(dt);
+      renderWeek();
+    });
+  });
+}
+const _miniCalPrev = $('#miniCalPrev');
+if (_miniCalPrev) _miniCalPrev.addEventListener('click', () => {
+  if (!_miniCalMonth) return;
+  _miniCalMonth.m--;
+  if (_miniCalMonth.m < 0) { _miniCalMonth.m = 11; _miniCalMonth.y--; }
+  renderMiniCal();
+});
+const _miniCalNext = $('#miniCalNext');
+if (_miniCalNext) _miniCalNext.addEventListener('click', () => {
+  if (!_miniCalMonth) return;
+  _miniCalMonth.m++;
+  if (_miniCalMonth.m > 11) { _miniCalMonth.m = 0; _miniCalMonth.y++; }
+  renderMiniCal();
+});
+
 function renderWeek() {
   const cfg = state.config;
   const baseDays = cfg.days;
@@ -2999,9 +3379,8 @@ function renderWeek() {
         return `<div class="${cls}" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</div>`;
       }).join('') + '</div>';
     }
-    /* Request 7: pat-A/B/Oクラスは付けない（同色化） */
     html += `<th class="${dayCls}${todayCls}${holidayCls}" data-date="${iso}">
-      <div class="wk-daterow"><span class="wk-date">${fmt(dt)}</span><span class="wk-wd">${WEEKDAYS[d]}</span></div>
+      <div class="wk-daterow wk-day-link" data-iso="${iso}" title="タップで「1日の予定」へ"><span class="wk-date">${fmt(dt)}</span><span class="wk-wd">${WEEKDAYS[d]}</span></div>
       ${chip ? `<div class="wkh-pat">${chip}</div>` : ''}
       ${todoHtml}
     </th>`;
@@ -3093,7 +3472,17 @@ function renderWeek() {
   html += specialRow('after', '放課後');
   html += '</tbody>';
   $('#weekGrid').innerHTML = html;
+  /* ミニ月間カレンダーは現在の週に同期 */
+  if (viewedWeekMonday) _miniCalMonth = { y: viewedWeekMonday.getFullYear(), m: viewedWeekMonday.getMonth() };
+  renderMiniCal();
 
+  $('#weekGrid').querySelectorAll('.wk-day-link').forEach(el => {
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', () => {
+      setDayplanDate(el.dataset.iso);
+      switchTab('dayplan');
+    });
+  });
   $('#weekGrid').querySelectorAll('.pat-chip').forEach(chip => {
     chip.style.cursor = 'pointer';
     chip.addEventListener('click', (e) => {
@@ -3101,10 +3490,24 @@ function renderWeek() {
       cyclePattern(chip.dataset.date);
     });
   });
+  /* 特殊行(始業前/昼休み/放課後/予定)のテキストはオーバーフロー時にフォントを自動縮小 */
+  function autoShrinkFont(ta) {
+    const tr = ta.closest('tr');
+    if (!tr || !tr.dataset.special) return;
+    ta.style.fontSize = '';
+    let fs = 12;
+    ta.style.fontSize = fs + 'px';
+    while (ta.scrollHeight > ta.clientHeight + 1 && fs > 8) {
+      fs -= 1;
+      ta.style.fontSize = fs + 'px';
+    }
+  }
   $('#weekGrid').querySelectorAll('.day-note-input').forEach(ta => {
     ta.addEventListener('input', () => {
       setDayNote(ta.dataset.iso, ta.dataset.slot, ta.value);
+      autoShrinkFont(ta);
     });
+    autoShrinkFont(ta);
   });
   $('#weekGrid').querySelectorAll('.subject-cell').forEach(cell => {
     cell.addEventListener('click', () => {
@@ -3529,8 +3932,7 @@ function setRecordDatePeriodDisp(dateIso, p) {
   if (pd) pd.textContent = p ? (p + '時限') : '—';
 }
 function gotoRecord(dateIso, p, _ignored, subject) {
-  switchTab('records');
-  // If subject was not provided, use the effective (override-aware) subject for the day/period
+  /* 既存の record があればロード、無ければ新規作成してポップアップを開く */
   if (!subject) {
     const eff = getEffectiveSubject(dateIso, p);
     if (!eff.isDeleted) subject = eff.subject || '';
@@ -3541,7 +3943,6 @@ function gotoRecord(dateIso, p, _ignored, subject) {
   );
   if (existing) {
     loadRecord(existing.id);
-    toast(`${dateIso} ${p}限の記録を開きました`);
   } else {
     newRecord();
     setRecordDatePeriodDisp(dateIso, p);
@@ -3549,15 +3950,15 @@ function gotoRecord(dateIso, p, _ignored, subject) {
     setRecSubjectDisplay(subject || '');
     refreshLastProgressHint();
     refreshSubjectMemo();
-    toast(`${dateIso} ${p}限の記録を入力`);
   }
+  openRecordModal();
 }
 
 /* ========== 授業記録 ========== */
 function getFilteredRecords() {
-  const q = ($('#recSearch').value || '').toLowerCase().trim();
+  const q = ($('#recSearch') && $('#recSearch').value || '').toLowerCase().trim();
   const subj = ($('#recFilterSubject') ? $('#recFilterSubject').value : '');
-  const sort = $('#recSort').value;
+  const sort = ($('#recSort') && $('#recSort').value) || 'date-desc';
   let list = state.records.slice();
   /* 週間カレンダーから削除されたコマの記録は表示しない */
   list = list.filter(r => {
@@ -3579,66 +3980,12 @@ function getFilteredRecords() {
 }
 
 function renderRecords() {
-  /* 科目で絞り込み（選択肢はマスタ＋記録の科目） */
-  const subjSel = $('#recFilterSubject');
-  if (subjSel) {
-    const subjects = Array.from(new Set([
-      ...(state.masters.subjects || []),
-      ...state.records.map(r => r.subject).filter(Boolean)
-    ])).sort((a,b) => a.localeCompare(b,'ja'));
-    const cur = subjSel.value;
-    subjSel.innerHTML = '<option value="">すべて</option>' +
-      subjects.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-    subjSel.value = cur;
-  }
-
-  const list = getFilteredRecords();
-  const listEl = $('#recordList');
-  if (list.length === 0) {
-    listEl.innerHTML = '<div class="empty">記録がありません。週間カレンダーで授業を選択して入力してください。</div>';
-    return;
-  }
-  listEl.innerHTML = list.map(r => {
-    const sel = (r.id === $('#recId').value) ? 'selected' : '';
-    const hasProgress = (r.progress || '').trim().length > 0;
-    const copyBtn = hasProgress
-      ? `<button class="rec-copy-btn" data-id="${r.id}" title="この進度を編集中の進度欄にコピー">進度をコピー</button>`
-      : '';
-    const doneBadge = r.done ? '<span class="rec-done-badge">✓ 実施済</span>' : '<span class="rec-pending-badge">未実施</span>';
-    return `
-      <div class="record-item ${sel}" data-id="${r.id}">
-        <div class="top">
-          <span>${escapeHtml(r.date||'')} ・ ${r.period||''}限</span>
-          ${doneBadge}
-        </div>
-        <div class="title">${escapeHtml(r.subject||'(科目未設定)')}</div>
-        <div class="snippet">${escapeHtml((r.progress||'').slice(0,80))}</div>
-        ${copyBtn}
-      </div>`;
-  }).join('');
-  listEl.querySelectorAll('.record-item').forEach(el => {
-    el.addEventListener('click', (e) => {
-      if (e.target && e.target.classList && e.target.classList.contains('rec-copy-btn')) return;
-      loadRecord(el.dataset.id);
-    });
-  });
-  listEl.querySelectorAll('.rec-copy-btn').forEach(b => {
-    b.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const r = state.records.find(x => x.id === b.dataset.id);
-      if (!r) return;
-      const ta = $('#recProgress');
-      if (!ta) return;
-      ta.value = r.progress || '';
-      ta.focus();
-      toast('進度をコピーしました');
-    });
-  });
+  /* 記録一覧パネルは廃止（ポップアップに統合）。互換のため空関数として残す */
 }
 
 function newRecord() {
   $('#recId').value = '';
-  $('#formTitle').textContent = '新規授業記録';
+  const t = $('#recModalTitle'); if (t) t.textContent = '新規授業記録';
   setRecordDatePeriodDisp('', '');
   $('#recSubject').value = '';
   setRecSubjectDisplay('');
@@ -3652,18 +3999,16 @@ function loadRecord(id) {
   const r = state.records.find(x => x.id === id);
   if (!r) return;
   $('#recId').value = r.id;
-  $('#formTitle').textContent = '授業記録を編集';
+  const t = $('#recModalTitle'); if (t) t.textContent = '授業記録を編集';
   setRecordDatePeriodDisp(r.date || '', r.period || '');
   $('#recSubject').value = r.subject || '';
   setRecSubjectDisplay(r.subject || '');
-  // 旧形式データの進度互換: 旧unit/contentがあればprogressに合流表示
   const progress = r.progress != null ? r.progress
     : [r.unit, r.content].filter(Boolean).join('\n');
   $('#recProgress').value = progress;
   $('#recNote').value = r.note || '';
   refreshLastProgressHint();
   refreshSubjectMemo();
-  renderRecords();
 }
 
 /* 直近の進度ヒントを更新 */
@@ -3691,7 +4036,7 @@ function refreshLastProgressHint() {
   box.className = 'hint-box';
   let html = `<div class="hint-date">${escapeHtml(r.date || '')}${r.period?(' ('+r.period+'限)'):''}</div><div>${escapeHtml(r.progress)}</div>`;
   if (r.note && r.note.trim()) {
-    html += `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--line); font-size:12px; color:var(--muted);"><span style="font-weight:700; color:var(--ink);">備考:</span> ${escapeHtml(r.note)}</div>`;
+    html += `<div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--line); font-size:12px; color:var(--muted);"><span style="font-weight:700; color:var(--ink);">前回からの申し送り:</span> ${escapeHtml(r.note)}</div>`;
   }
   box.innerHTML = html;
 }
@@ -3741,7 +4086,7 @@ function saveCurrentRecord(markDone) {
     updated: new Date().toISOString()
   };
   if (!rec.date || !rec.period) {
-    toast('週間カレンダーまたは記録一覧から授業を選んでください');
+    toast('週間カレンダーから授業を選んでください');
     return false;
   }
   const idx = state.records.findIndex(r => r.id === id);
@@ -3757,17 +4102,16 @@ function saveCurrentRecord(markDone) {
       setSubjectOverride(rec.date, rec.period, rec.subject);
     }
   }
-  save(); renderRecords(); refreshDatalists(); renderExamCountPanel();
+  save(); refreshDatalists(); renderExamCountPanel();
+  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
   return true;
 }
 
 $('#recSave').addEventListener('click', () => {
-  /* 授業を登録 — done フラグは触らない（既存値維持・新規はfalse） */
-  if (saveCurrentRecord(undefined)) toast('授業を登録しました');
+  if (saveCurrentRecord(undefined)) { toast('授業を登録しました'); closeRecordModal(); }
 });
 $('#recComplete').addEventListener('click', () => {
-  /* 実施済み — done=true にして保存。週間カレンダーに✓が付く */
-  if (saveCurrentRecord(true)) toast('実施済みとして記録しました ✓');
+  if (saveCurrentRecord(true)) { toast('実施済みとして記録しました ✓'); closeRecordModal(); }
 });
 $('#recDeletePeriod').addEventListener('click', () => {
   const date = $('#recDate').value;
@@ -3793,22 +4137,32 @@ $('#recResetPeriod').addEventListener('click', () => {
   refreshSubjectMemo();
   toast('時間割どおりに戻しました');
 });
-$('#recNew').addEventListener('click', newRecord);
 $('#recDelete').addEventListener('click', () => {
   const id = $('#recId').value;
   if (!id) { toast('選択された記録がありません'); return; }
   if (!confirm('この記録を削除しますか？')) return;
   state.records = state.records.filter(r => r.id !== id);
-  save(); newRecord(); renderRecords(); renderExamCountPanel();
+  save(); renderExamCountPanel();
+  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+  closeRecordModal();
   toast('削除しました');
 });
-['recSearch','recSort','recFilterSubject'].forEach(id => {
-  const el = $('#'+id);
-  if (!el) return;
-  el.addEventListener('input', renderRecords);
-  el.addEventListener('change', renderRecords);
+
+/* 授業記録ポップアップ — 開閉 */
+function openRecordModal() {
+  const bg = $('#recordModalBg');
+  if (bg) bg.classList.add('show');
+}
+function closeRecordModal() {
+  const bg = $('#recordModalBg');
+  if (bg) bg.classList.remove('show');
+}
+const _recModalCloseBtn = $('#recModalClose');
+if (_recModalCloseBtn) _recModalCloseBtn.addEventListener('click', closeRecordModal);
+const _recModalBg = $('#recordModalBg');
+if (_recModalBg) _recModalBg.addEventListener('click', (e) => {
+  if (e.target.id === 'recordModalBg') closeRecordModal();
 });
-/* recSubject は hidden 入力。値変更はモーダル選択経由で setRecSubjectDisplay と refresh が呼ばれる */
 
 /* 「この授業でやることメモ」: 入力即時に単発授業（date|period|subject）単位で保存（debounce） */
 let _memoSaveTimer = null;
@@ -4949,13 +5303,7 @@ function closeSubjModal() {
 function setRecSubjectDisplay(v) {
   const disp = $('#recSubjectDisp');
   if (!disp) return;
-  if (v) {
-    disp.textContent = v;
-    disp.classList.remove('subj-disp-empty');
-  } else {
-    disp.textContent = 'タップして科目を選ぶ';
-    disp.classList.add('subj-disp-empty');
-  }
+  disp.textContent = v || '—';
 }
 $('#subjModalClose').addEventListener('click', closeSubjModal);
 $('#subjModalBg').addEventListener('click', (e) => { if (e.target.id === 'subjModalBg') closeSubjModal(); });
@@ -4965,9 +5313,7 @@ $('#subjModalSearch').addEventListener('input', (e) => {
   const filtered = q ? all.filter(s => s.toLowerCase().includes(q)) : all;
   renderSubjModalList(filtered);
 });
-/* 科目選択ボタンをタップ → モーダル表示 */
-const _recSubjBtn = $('#recSubjectBtn');
-if (_recSubjBtn) _recSubjBtn.addEventListener('click', () => openSubjModal('recSubject'));
+/* 科目はポップアップ内で読み取り専用（編集不可）。クリック→モーダルは廃止 */
 
 /* ========== タップアウトでソフトキーボード解除（アプリ全体共通） ========== */
 function _isEditableField(el) {
@@ -5004,6 +5350,17 @@ const _kbdBtn = $('#kbdDismissBtn');
 if (_kbdBtn) _kbdBtn.style.display = 'none';
 
 /* ========== 初期化 ========== */
+/* 月間カレンダーは独立タブを廃止し、設定タブの先頭に組み込む */
+(function moveCalendarIntoSettings() {
+  const calSect = document.getElementById('view-calendar');
+  const settingsSect = document.getElementById('view-settings');
+  if (calSect && settingsSect) {
+    calSect.classList.remove('view');
+    calSect.classList.remove('active');
+    /* 設定タブの先頭に挿入 */
+    settingsSect.insertBefore(calSect, settingsSect.firstChild);
+  }
+})();
 renderTimetableEditor('A');
 renderTimetableEditor('B');
 newRecord();
@@ -5011,7 +5368,7 @@ refreshTodoCats();
 renderTodos();
 refreshDatalists();
 renderSettings();
-renderWeek();              /* 起動時の既定タブ（週間カレンダー） */
+renderWeek();
 updateHeaderStatus();
 updateTodoBadge();
 
