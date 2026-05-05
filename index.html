@@ -271,15 +271,27 @@
   /* 考査対象期間テーブル */
   .exam-periods-grid {
     border-collapse: collapse; width: 100%;
+    table-layout: fixed;
   }
   .exam-periods-grid th, .exam-periods-grid td {
     border: 1px solid var(--line); padding: 6px 8px;
     font-size: 12px; vertical-align: middle;
+    overflow: hidden;
   }
   .exam-periods-grid th { background: #f4f4f4; font-weight: 600; }
-  .exam-periods-grid input[type="text"], .exam-periods-grid input[type="date"] {
-    width: 100%; box-sizing: border-box; padding: 5px 8px; font-size: 13px;
+  .exam-periods-grid col.ep-col-name { width: 40%; }
+  .exam-periods-grid col.ep-col-date { width: 26%; }
+  .exam-periods-grid col.ep-col-del { width: 8%; min-width: 50px; }
+  .exam-periods-grid input[type="text"] {
+    width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 14px;
     border: 1px solid var(--line); border-radius: 3px;
+    min-width: 0;
+  }
+  .exam-periods-grid input[type="date"] {
+    width: 100%; box-sizing: border-box; padding: 6px 4px; font-size: 13px;
+    border: 1px solid var(--line); border-radius: 3px;
+    min-width: 0; -webkit-appearance: none; appearance: none;
+    height: 32px;
   }
   .exam-periods-grid .ep-del {
     background: none; border: 1px solid var(--line); border-radius: 4px;
@@ -389,18 +401,41 @@
     background: var(--blue-soft); border: 1px solid #cfdcec;
     border-radius: 6px; flex-wrap: wrap;
   }
+  .dayplan-layout {
+    display: flex; gap: 16px; align-items: flex-start;
+  }
+  .dayplan-layout .dp-left { flex: 0 0 auto; }
+  .dayplan-layout .dp-right { flex: 1 1 auto; min-width: 0; }
+  @media (max-width: 720px) {
+    .dayplan-layout { flex-direction: column; }
+    .dayplan-layout .dp-left, .dayplan-layout .dp-right { width: 100%; }
+  }
   .dp-schedule-table {
-    border-collapse: collapse; width: 100%; max-width: 720px;
+    border-collapse: collapse;
     margin-top: 6px;
   }
   .dp-schedule-table th, .dp-schedule-table td {
-    border: 1px solid var(--line); padding: 8px 12px;
-    font-size: 13px; vertical-align: middle;
+    border: 1px solid var(--line); padding: 5px 8px;
+    font-size: 12px; vertical-align: middle;
+    white-space: nowrap;
   }
-  .dp-schedule-table th { background: #f4f4f4; width: 80px; text-align: center; font-weight: 600; }
-  .dp-schedule-table .dp-subj { font-weight: 600; }
-  .dp-schedule-table .dp-empty { color: var(--muted); font-style: italic; }
-  .dp-schedule-table tr.dp-done td.dp-subj::before { content: '✓ '; color: var(--blue); font-weight: 700; }
+  .dp-schedule-table th {
+    background: #f4f4f4; width: 60px; text-align: center; font-weight: 600;
+  }
+  .dp-schedule-table td.dp-subj {
+    font-weight: 600; min-width: 100px;
+  }
+  .dp-schedule-table td.dp-subj-empty {
+    color: #ccc; min-width: 100px;
+  }
+  .dp-schedule-table .dp-done-mark {
+    color: var(--blue); font-weight: 700; margin-left: 6px;
+  }
+  .dp-schedule-table tr[data-special] td.dp-subj { font-weight: 500; color: var(--muted); font-size: 11px; }
+  .dp-schedule-table tr[data-special="plan"] td:not(.dp-period-head) { background: #d8e3f2; color: var(--blue); }
+  .dp-schedule-table tr[data-special="before"] td:not(.dp-period-head),
+  .dp-schedule-table tr[data-special="lunch"] td:not(.dp-period-head),
+  .dp-schedule-table tr[data-special="after"] td:not(.dp-period-head) { background: #ececec; }
   .dp-todos-list {
     list-style: none; padding: 0; margin: 6px 0; display: flex;
     flex-direction: column; gap: 6px;
@@ -415,46 +450,79 @@
   .dp-todo input[type="checkbox"] { transform: scale(1.4); margin: 2px 4px; }
   .dp-todo .dp-todo-title { flex: 1 1 auto; font-size: 14px; }
   .dp-todos-empty { color: var(--muted); font-style: italic; padding: 6px 0; font-size: 13px; }
+  /* 週間カレンダー全体レイアウト: 左にミニカレ・右に週間カレ */
+  .week-layout {
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .week-layout .mini-cal-wrap { flex: 0 0 auto; }
+  .week-layout .week-grid-wrap { flex: 1 1 auto; min-width: 0; overflow-x: auto; }
+  @media (max-width: 720px) {
+    .week-layout { flex-direction: column; }
+  }
   /* ミニ月間カレンダー（週間カレンダータブ内） */
   .mini-cal-wrap {
-    margin-bottom: 12px;
     background: #fff; border: 1px solid var(--line); border-radius: 6px;
-    padding: 8px;
-    display: inline-block;
+    padding: 6px; box-sizing: border-box;
   }
   .mini-cal-head {
     display: flex; align-items: center; justify-content: center;
-    gap: 12px; margin-bottom: 4px;
+    gap: 6px; margin-bottom: 3px;
   }
   .mini-cal-head .mini-cal-label {
-    font-weight: 700; color: var(--accent); font-size: 14px;
-    min-width: 110px; text-align: center;
+    font-weight: 700; color: var(--accent); font-size: 12px;
+    min-width: 90px; text-align: center;
   }
   .mini-cal-head .mini-cal-nav {
-    background: #fff; border: 1px solid var(--line); border-radius: 4px;
-    padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: inherit;
-    min-height: 32px; min-width: 36px;
+    background: #fff; border: 1px solid var(--line); border-radius: 3px;
+    padding: 2px 6px; font-size: 11px; cursor: pointer; font-family: inherit;
+    min-height: 24px; min-width: 26px;
   }
   .mini-cal-head .mini-cal-nav:hover { background: var(--accent-soft); }
-  table.mini-cal { border-collapse: collapse; }
+  table.mini-cal { border-collapse: separate; border-spacing: 0; }
   table.mini-cal th, table.mini-cal td {
-    width: 28px; height: 26px; text-align: center;
-    font-size: 11px; padding: 0;
+    width: 22px; height: 22px; text-align: center;
+    font-size: 10px; padding: 0;
+    border: 1px solid transparent;
+    box-sizing: border-box;
   }
   table.mini-cal th { color: var(--muted); font-weight: 600; }
   table.mini-cal th.mc-sun { color: #c44; }
   table.mini-cal th.mc-sat { color: #39a; }
   table.mini-cal td.mc-day {
-    cursor: pointer; border-radius: 3px;
-    border: 1px solid transparent;
+    cursor: pointer; border-radius: 2px;
   }
   table.mini-cal td.mc-day:hover { background: var(--accent-soft); }
   table.mini-cal td.mc-day.mc-empty { color: #ccc; cursor: default; }
-  table.mini-cal td.mc-day.mc-today { background: #fff3c4; font-weight: 700; }
-  table.mini-cal td.mc-day.mc-week { background: var(--accent-soft); border-color: var(--accent); }
+  /* 選択中の週: グレーの編みかけ（斜線パターン）で示す */
+  table.mini-cal td.mc-day.mc-week {
+    background: repeating-linear-gradient(
+      45deg, #e6e6e6, #e6e6e6 3px,
+      #d4d4d4 3px, #d4d4d4 4px
+    );
+  }
   table.mini-cal td.mc-day.mc-sun { color: #c44; }
   table.mini-cal td.mc-day.mc-sat { color: #39a; }
-  table.mini-cal td.mc-day.mc-holiday { background: #ffe5e5; }
+  /* 祝日: 赤字のみ。背景は他の日と同じ扱い（選択週ならグレー網掛けが透けて見える） */
+  table.mini-cal td.mc-day.mc-holiday {
+    color: #c44;
+  }
+  /* 今日: 別色（青系）の編みかけ。枠線は使わない（選択週より優先するため最後に記述） */
+  table.mini-cal td.mc-day.mc-today {
+    font-weight: 700;
+    background: repeating-linear-gradient(
+      45deg, #d8e3f2, #d8e3f2 3px,
+      #a3bce0 3px, #a3bce0 4px
+    );
+  }
+  /* 時間割の適用開始日 行: 入力欄とクリアボタンを下端揃え */
+  .tt-startdate-row { gap: 10px; flex-wrap: wrap; }
+  .tt-startdate-row .field { flex: 0 1 240px; min-width: 0; }
+  .tt-startdate-row .field input[type="date"] {
+    width: 100%; height: 36px; box-sizing: border-box;
+  }
+  .tt-startdate-row .tt-startdate-clear {
+    height: 36px; align-self: flex-end;
+  }
   /* 時間割編集セル用ボタン（モーダル選択トリガ） */
   .tt-cell-btn {
     width: 100%; min-height: 36px;
@@ -1649,15 +1717,19 @@
         <button class="btn secondary small" onclick="window.print()">印刷</button>
         <button class="btn secondary" id="weekNext" style="margin-left:auto;">次週 ▶</button>
       </div>
-      <div class="mini-cal-wrap no-print">
-        <div class="mini-cal-head">
-          <button type="button" class="mini-cal-nav" id="miniCalPrev">◀</button>
-          <span class="mini-cal-label" id="miniCalLabel">—</span>
-          <button type="button" class="mini-cal-nav" id="miniCalNext">▶</button>
+      <div class="week-layout">
+        <div class="mini-cal-wrap no-print">
+          <div class="mini-cal-head">
+            <button type="button" class="mini-cal-nav" id="miniCalPrev">◀</button>
+            <span class="mini-cal-label" id="miniCalLabel">—</span>
+            <button type="button" class="mini-cal-nav" id="miniCalNext">▶</button>
+          </div>
+          <table class="mini-cal" id="miniCalGrid"></table>
         </div>
-        <table class="mini-cal" id="miniCalGrid"></table>
+        <div class="week-grid-wrap">
+          <table class="week-grid" id="weekGrid"></table>
+        </div>
       </div>
-      <table class="week-grid" id="weekGrid"></table>
     </div>
   </section>
 
@@ -1670,12 +1742,18 @@
         <button class="btn secondary small" id="dayplanToday">今日</button>
         <button class="btn secondary" id="dayplanNext" style="margin-left:auto;">翌日 ▶</button>
       </div>
-      <h3 style="margin-top:14px; font-size:14px;">時間割</h3>
-      <div id="dayplanSchedule"></div>
-      <h3 style="margin-top:14px; font-size:14px;">この日のtodo</h3>
-      <div id="dayplanTodos"></div>
-      <h3 style="margin-top:14px; font-size:14px;">この日のメモ</h3>
-      <textarea id="dayplanMemo" class="hint-box-input" style="min-height:80px;" placeholder="この日のメモ（自由記入）"></textarea>
+      <div class="dayplan-layout">
+        <div class="dp-left">
+          <h3 style="margin-top:14px; font-size:14px;">時間割</h3>
+          <div id="dayplanSchedule"></div>
+        </div>
+        <div class="dp-right">
+          <h3 style="margin-top:14px; font-size:14px;">この日のtodo</h3>
+          <div id="dayplanTodos"></div>
+          <h3 style="margin-top:14px; font-size:14px;">この日のメモ</h3>
+          <textarea id="dayplanMemo" class="hint-box-input" style="min-height:120px;" placeholder="この日のメモ（自由記入）"></textarea>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1843,12 +1921,12 @@
         <button class="btn secondary" onclick="copyPattern('A','B')">時間割Bへコピー</button>
         <button class="btn secondary" onclick="copyPattern('B','A')">時間割Bから取り込み</button>
       </div>
-      <div class="settings-row" style="margin-bottom:8px;">
+      <div class="settings-row tt-startdate-row" style="margin-bottom:8px; align-items:flex-end;">
         <div class="field">
           <label>適用開始日（この日以降にこの時間割を適用）</label>
           <input id="ttAStart" type="date">
         </div>
-        <button type="button" class="btn secondary small" id="ttAStartClear" title="適用開始日を解除（全日に適用）">クリア</button>
+        <button type="button" class="btn secondary small tt-startdate-clear" id="ttAStartClear" title="適用開始日を解除（全日に適用）">クリア</button>
       </div>
       <table class="timetable" id="ttA-grid"></table>
       <div class="tt-save-bar">
@@ -1868,12 +1946,12 @@
         <button class="btn secondary" onclick="copyPattern('B','A')">時間割Aへコピー</button>
         <button class="btn secondary" onclick="copyPattern('A','B')">時間割Aから取り込み</button>
       </div>
-      <div class="settings-row" style="margin-bottom:8px;">
+      <div class="settings-row tt-startdate-row" style="margin-bottom:8px; align-items:flex-end;">
         <div class="field">
           <label>適用開始日（この日以降にこの時間割を適用）</label>
           <input id="ttBStart" type="date">
         </div>
-        <button type="button" class="btn secondary small" id="ttBStartClear" title="適用開始日を解除（全日に適用）">クリア</button>
+        <button type="button" class="btn secondary small tt-startdate-clear" id="ttBStartClear" title="適用開始日を解除（全日に適用）">クリア</button>
       </div>
       <table class="timetable" id="ttB-grid"></table>
       <div class="tt-save-bar">
@@ -2762,7 +2840,7 @@ function renderTimetableEditor(key) {
       row += `
         <td>
           <div class="cell">
-            <button type="button" class="tt-cell-btn" data-pat="${key}" data-key="${cellKey}">${draftVal ? escapeHtml(draftVal) : '<span class="tt-cell-empty">タップ</span>'}</button>
+            <button type="button" class="tt-cell-btn" data-pat="${key}" data-key="${cellKey}">${draftVal ? escapeHtml(draftVal) : '&nbsp;'}</button>
           </div>
         </td>`;
     }
@@ -3144,35 +3222,50 @@ function renderDayplan() {
   const hname = getHolidayLabel(iso);
   const lbl = $('#dayplanLabel');
   if (lbl) lbl.innerHTML = escapeHtml(dispLabel) + (hname ? ` <span style="color:#c44;font-weight:700;">[${escapeHtml(hname)}]</span>` : '');
-  /* 時間割 */
-  const periodCount = getEffectivePeriodCount(iso) || (state.config.periods || 6);
-  let schedHtml = '<table class="dp-schedule-table"><thead><tr><th>時限</th><th>科目</th><th>状態</th></tr></thead><tbody>';
-  let any = false;
-  for (let p = 1; p <= periodCount; p++) {
+  /* 時間割: 予定→始業前→p1...lunch...pN→放課後 を全コマ表示（空欄も含む） */
+  const cfg = state.config;
+  const periodCount = getEffectivePeriodCount(iso) || cfg.periods || 6;
+  const lunchAfter = Math.min(cfg.lunchAfter || 0, periodCount);
+  let schedHtml = '<table class="dp-schedule-table"><thead><tr><th>時限</th><th>科目</th></tr></thead><tbody>';
+  /* 特殊行を生成するヘルパ — dayNotes から値を読む */
+  const specialRow = (slot, label) => {
+    const val = (state.dayNotes && state.dayNotes[iso] && state.dayNotes[iso][slot]) || '';
+    return `<tr data-special="${slot}"><td class="dp-period-head" style="text-align:center;">${escapeHtml(label)}</td><td class="${val?'dp-subj':'dp-subj-empty'}">${val ? escapeHtml(val) : ''}</td></tr>`;
+  };
+  /* 時限行を生成 */
+  const periodRow = (p) => {
     const eff = getEffectiveSubject(iso, p);
-    if (eff.isDeleted) continue;
-    const subject = eff.subject;
-    if (!subject) continue;
-    any = true;
-    const rec = state.records.find(r => r.date === iso && r.period === p && r.subject === subject);
-    const isDone = rec && rec.done;
-    const trCls = isDone ? 'dp-done' : '';
-    const status = isDone ? '実施済み' : (rec ? '登録済み' : '未実施');
-    const col = getSubjectColor(subject);
-    const colStyle = col ? `style="color:${escapeHtml(col)}"` : '';
-    schedHtml += `<tr class="${trCls}" data-period="${p}" data-subject="${escapeHtml(subject)}">
-      <td style="text-align:center;">${p}限</td>
-      <td class="dp-subj" ${colStyle}>${escapeHtml(subject)}</td>
-      <td style="text-align:center; font-size:12px; color:${isDone?'var(--blue)':'var(--muted)'};">${status}</td>
-    </tr>`;
+    let subject = '';
+    let isDone = false;
+    let recExists = false;
+    if (!eff.isDeleted && eff.subject) {
+      subject = eff.subject;
+      const rec = state.records.find(r => r.date === iso && r.period === p && r.subject === subject);
+      recExists = !!rec;
+      isDone = rec && rec.done;
+    }
+    const cls = subject ? 'dp-subj' : 'dp-subj-empty';
+    const col = subject ? getSubjectColor(subject) : '';
+    const colStyle = col ? ` style="color:${escapeHtml(col)}"` : '';
+    const doneMark = isDone ? '<span class="dp-done-mark">✓</span>' : '';
+    const cellContent = subject ? `${escapeHtml(subject)}${doneMark}` : '';
+    return `<tr data-period="${p}" data-subject="${escapeHtml(subject)}"><td class="dp-period-head" style="text-align:center;">${p}限</td><td class="${cls}"${colStyle}>${cellContent}</td></tr>`;
+  };
+  schedHtml += specialRow('plan', '予定');
+  schedHtml += specialRow('before', '始業前');
+  if (lunchAfter > 0) {
+    for (let p = 1; p <= lunchAfter; p++) schedHtml += periodRow(p);
+    if (lunchAfter < periodCount) schedHtml += specialRow('lunch', '昼休み');
+    for (let p = lunchAfter + 1; p <= periodCount; p++) schedHtml += periodRow(p);
+  } else {
+    for (let p = 1; p <= periodCount; p++) schedHtml += periodRow(p);
   }
-  if (!any) {
-    schedHtml += '<tr><td colspan="3" class="dp-empty" style="text-align:center;">この日に授業はありません</td></tr>';
-  }
+  schedHtml += specialRow('after', '放課後');
   schedHtml += '</tbody></table>';
   $('#dayplanSchedule').innerHTML = schedHtml;
-  /* セル行クリックで授業記録ポップアップ */
+  /* 授業セル行クリック → ポップアップ */
   $('#dayplanSchedule').querySelectorAll('tr[data-period]').forEach(tr => {
+    if (!tr.dataset.subject) return;  /* 空セルはクリック不可 */
     tr.style.cursor = 'pointer';
     tr.addEventListener('click', () => {
       gotoRecord(iso, parseInt(tr.dataset.period), '', tr.dataset.subject);
@@ -3278,7 +3371,12 @@ function renderMiniCal() {
         const isHol = isHolidayAny(iso);
         const wdCls = i===5 ? ' mc-sat' : i===6 ? ' mc-sun' : '';
         const todayCls = isToday ? ' mc-today' : '';
-        const weekCls = inWeek ? ' mc-week' : '';
+        let weekCls = '';
+        if (inWeek) {
+          weekCls = ' mc-week';
+          if (iso === weekStartIso) weekCls += ' mc-week-start';
+          if (iso === weekEndIso)   weekCls += ' mc-week-end';
+        }
         const holCls = isHol ? ' mc-holiday' : '';
         html += `<td class="mc-day${wdCls}${todayCls}${weekCls}${holCls}" data-iso="${iso}">${cur}</td>`;
       }
@@ -4888,7 +4986,8 @@ function renderExamPeriodsGrid() {
   const tbl = $('#examPeriodsGrid');
   if (!tbl) return;
   const list = gsExamPeriods();
-  let html = '<thead><tr><th style="width:30%;">考査名</th><th>開始日</th><th>終了日</th><th style="width:60px;">削除</th></tr></thead><tbody>';
+  let html = '<colgroup><col class="ep-col-name"><col class="ep-col-date"><col class="ep-col-date"><col class="ep-col-del"></colgroup>';
+  html += '<thead><tr><th>考査名</th><th>開始日</th><th>終了日</th><th>削除</th></tr></thead><tbody>';
   if (!list || list.length === 0) {
     html += '<tr><td colspan="4" class="ep-empty">考査が登録されていません。「+ 考査を追加」で行を追加してください。</td></tr>';
   } else {
