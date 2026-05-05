@@ -2132,17 +2132,7 @@
   </div>
 </div>
 
-<!-- 資料(PDF)閲覧オーバーレイ -->
-<div class="doc-viewer-bg" id="docViewerBg">
-  <div class="doc-viewer">
-    <div class="doc-viewer-head">
-      <span class="doc-viewer-title" id="docViewerTitle">—</span>
-      <a class="doc-viewer-newtab" id="docViewerNewTab" href="#" target="_blank" rel="noopener">↗ 新規タブ</a>
-      <button type="button" id="docViewerClose">閉じる ✕</button>
-    </div>
-    <iframe id="docViewerFrame" src="about:blank"></iframe>
-  </div>
-</div>
+<!-- 資料(PDF)はブラウザ標準ビューアで新規タブ表示（iframe オーバーレイは廃止） -->
 
 <script>
 /* ========== ユーティリティ ========== */
@@ -4865,7 +4855,7 @@ function renderDocuments() {
               <div class="doc-meta">${escapeHtml(d.src)}${d.addedAt?(' ・ 追加: '+d.addedAt.slice(0,10)):''}</div>
             </div>
             <div class="doc-actions">
-              <button class="doc-btn doc-view" data-id="${d.id}">閲覧</button>
+              <button class="doc-btn doc-view" data-id="${d.id}" title="新しいタブで開きます">↗ 閲覧</button>
               <button class="doc-btn secondary doc-edit" data-id="${d.id}">編集</button>
               <button class="doc-btn danger doc-del" data-id="${d.id}">削除</button>
             </div>
@@ -4906,22 +4896,15 @@ function renderDocuments() {
   }));
 }
 
+/* PDFは iframe で開くと iOS Safari で1ページしか表示されない・ピンチズーム不可など制約が多い。
+   そのため、ブラウザ標準のPDFビューア（iPad/iPhoneは Safari の Quick Look 全画面、Macは
+   ブラウザ標準ビューア）に任せるべく、新規タブで開く方式とする。 */
 function openDocViewer(id) {
   const d = state.documents.find(x => x.id === id);
   if (!d) return;
-  $('#docViewerTitle').textContent = d.title || '';
-  $('#docViewerNewTab').href = d.src;
-  $('#docViewerFrame').src = d.src;
-  $('#docViewerBg').classList.add('show');
+  /* ユーザー操作からの window.open はポップアップブロックされにくい */
+  window.open(d.src, '_blank', 'noopener');
 }
-function closeDocViewer() {
-  $('#docViewerBg').classList.remove('show');
-  $('#docViewerFrame').src = 'about:blank';
-}
-$('#docViewerClose').addEventListener('click', closeDocViewer);
-$('#docViewerBg').addEventListener('click', (e) => {
-  if (e.target.id === 'docViewerBg') closeDocViewer();
-});
 
 /* 資料追加フォーム */
 $('#docAddForm').addEventListener('submit', (e) => {
