@@ -907,6 +907,40 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* 授業記録ポップアップ内の科目インライン選択リスト（別モーダルではない） */
+  .subj-pick-inline {
+    margin-top: 6px;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: var(--accent-soft);
+    padding: 10px;
+  }
+  .subj-pick-inline .subj-inline-hint {
+    font-size: 12px; color: var(--accent); font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .subj-pick-inline .subj-inline-grid {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    max-height: 240px; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: #fff; padding: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+  }
+  .subj-pick-inline .subj-inline-opt {
+    background: #fff; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 8px 14px; font-size: 14px;
+    cursor: pointer; font-family: inherit;
+    min-height: 40px; min-width: 80px;
+  }
+  .subj-pick-inline .subj-inline-opt:hover,
+  .subj-pick-inline .subj-inline-opt:active {
+    background: var(--accent-soft); border-color: var(--accent);
+  }
+  .subj-pick-inline .subj-inline-empty {
+    color: var(--muted); font-size: 13px; padding: 6px 4px;
+  }
   /* 科目選択ボタン（リストからのみ選ぶ専用UI） */
   .field { position: relative; }
   .subj-select-btn {
@@ -2092,9 +2126,7 @@
         <div class="field">
           <label>科目</label>
           <div id="recSubjectDisp" class="readonly-disp">—</div>
-          <button type="button" id="recSubjectPickBtn" class="subj-select-btn" style="display:none; margin-top:6px;">
-            <span>▼ 科目を選ぶ</span>
-          </button>
+          <div id="recSubjectPickInline" class="subj-pick-inline" style="display:none;"></div>
           <input id="recSubject" type="hidden">
         </div>
       </div>
@@ -4048,14 +4080,43 @@ function gotoRecord(dateIso, p, _ignored, subject) {
   openRecordModal();
 }
 
-/* 「科目を選ぶ」ボタンの表示制御 */
+/* 科目選択をポップアップ内にインライン表示。別モーダルは使わない */
 function showRecSubjectPicker(show) {
-  const btn = $('#recSubjectPickBtn');
-  if (!btn) return;
-  btn.style.display = show ? '' : 'none';
+  const disp = $('#recSubjectDisp');
+  const inline = $('#recSubjectPickInline');
+  if (!inline) return;
+  if (show) {
+    if (disp) disp.style.display = 'none';
+    inline.style.display = '';
+    renderRecSubjectInlineList();
+  } else {
+    if (disp) disp.style.display = '';
+    inline.style.display = 'none';
+  }
 }
-const _recSubjPickBtn = $('#recSubjectPickBtn');
-if (_recSubjPickBtn) _recSubjPickBtn.addEventListener('click', () => openSubjModal('recSubject'));
+function renderRecSubjectInlineList() {
+  const wrap = $('#recSubjectPickInline');
+  if (!wrap) return;
+  const subjects = gatherAllSubjects();
+  if (!subjects.length) {
+    wrap.innerHTML = '<div class="subj-inline-empty">マスタに科目が未登録です。設定タブの「科目マスタ」で登録してください。</div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="subj-inline-hint">科目を選んでください:</div>'
+    + '<div class="subj-inline-grid">'
+    + subjects.map(s => `<button type="button" class="subj-inline-opt" data-v="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join('')
+    + '</div>';
+  wrap.querySelectorAll('.subj-inline-opt').forEach(b => {
+    b.addEventListener('click', () => {
+      const v = b.dataset.v;
+      $('#recSubject').value = v;
+      setRecSubjectDisplay(v);
+      showRecSubjectPicker(false);
+      refreshLastProgressHint();
+      refreshSubjectMemo();
+    });
+  });
+}
 
 /* ========== 授業記録 ========== */
 function getFilteredRecords() {
