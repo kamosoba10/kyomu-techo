@@ -2092,6 +2092,9 @@
         <div class="field">
           <label>科目</label>
           <div id="recSubjectDisp" class="readonly-disp">—</div>
+          <button type="button" id="recSubjectPickBtn" class="subj-select-btn" style="display:none; margin-top:6px;">
+            <span>▼ 科目を選ぶ</span>
+          </button>
           <input id="recSubject" type="hidden">
         </div>
       </div>
@@ -4031,6 +4034,7 @@ function gotoRecord(dateIso, p, _ignored, subject) {
   );
   if (existing) {
     loadRecord(existing.id);
+    showRecSubjectPicker(false);  /* 既存記録は科目編集不可 */
   } else {
     newRecord();
     setRecordDatePeriodDisp(dateIso, p);
@@ -4038,9 +4042,20 @@ function gotoRecord(dateIso, p, _ignored, subject) {
     setRecSubjectDisplay(subject || '');
     refreshLastProgressHint();
     refreshSubjectMemo();
+    /* 空きコマから開いた場合のみ「科目を選ぶ」ボタンを表示 */
+    showRecSubjectPicker(!subject);
   }
   openRecordModal();
 }
+
+/* 「科目を選ぶ」ボタンの表示制御 */
+function showRecSubjectPicker(show) {
+  const btn = $('#recSubjectPickBtn');
+  if (!btn) return;
+  btn.style.display = show ? '' : 'none';
+}
+const _recSubjPickBtn = $('#recSubjectPickBtn');
+if (_recSubjPickBtn) _recSubjPickBtn.addEventListener('click', () => openSubjModal('recSubject'));
 
 /* ========== 授業記録 ========== */
 function getFilteredRecords() {
@@ -4175,6 +4190,10 @@ function saveCurrentRecord(markDone) {
   };
   if (!rec.date || !rec.period) {
     toast('週間カレンダーから授業を選んでください');
+    return false;
+  }
+  if (!rec.subject) {
+    toast('科目を選んでください');
     return false;
   }
   const idx = state.records.findIndex(r => r.id === id);
