@@ -4060,10 +4060,15 @@ function gotoRecord(dateIso, p, _ignored, subject) {
     const eff = getEffectiveSubject(dateIso, p);
     if (!eff.isDeleted) subject = eff.subject || '';
   }
-  const existing = state.records.find(r =>
-    r.date === dateIso && r.period === p &&
-    (!subject || r.subject === subject)
-  );
+  /* 科目が特定されている場合のみ既存レコードを探す。
+     科目が空（＋授業ボタン経由・予定を消した直後など）は常に新規作成扱いとし、
+     過去の別科目レコードを誤って呼び出さないようにする */
+  let existing = null;
+  if (subject) {
+    existing = state.records.find(r =>
+      r.date === dateIso && r.period === p && r.subject === subject
+    );
+  }
   if (existing) {
     loadRecord(existing.id);
     showRecSubjectPicker(false);  /* 既存記録は科目編集不可 */
@@ -4074,7 +4079,7 @@ function gotoRecord(dateIso, p, _ignored, subject) {
     setRecSubjectDisplay(subject || '');
     refreshLastProgressHint();
     refreshSubjectMemo();
-    /* 空きコマから開いた場合のみ「科目を選ぶ」ボタンを表示 */
+    /* 科目未設定なら必ず科目選択リストを表示 */
     showRecSubjectPicker(!subject);
   }
   openRecordModal();
@@ -4285,12 +4290,19 @@ $('#recDeletePeriod').addEventListener('click', () => {
   const date = $('#recDate').value;
   const p = parseInt($('#recPeriod').value) || 0;
   if (!date || !p) { toast('日付と時限を指定してください'); return; }
-  if (!confirm(`${date} ${p}限の授業コマを週間カレンダーから非表示にします。\n（時間割A/B自体は変更されません）`)) return;
-  setSubjectOverride(date, p, '');
-  $('#recSubject').value = '';
-  setRecSubjectDisplay('');
-  refreshLastProgressHint();
-  refreshSubjectMemo();
+  if (!confirm(`${date} ${p}限の授業コマを週間カレンダーから削除します。\n続行しますか？\n（時間割A/B自体は変更されません）`)) return;
+  /* 元の時間割にコマがあるかで挙動を分岐:
+     - 時間割に科目あり → 「削除済」フラグ(空文字override)で非表示にする（リセットで戻せる）
+     - 時間割が空（+授業で追加した独自コマ） → override 自体をクリアして元の空セルに戻す */
+  const patSub = getPatternSubject(date, p);
+  if (patSub) {
+    setSubjectOverride(date, p, '');
+  } else {
+    setSubjectOverride(date, p, null);
+  }
+  closeRecordModal();
+  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+  renderExamCountPanel();
   toast('このコマを削除しました');
 });
 $('#recResetPeriod').addEventListener('click', () => {
@@ -4298,11 +4310,9 @@ $('#recResetPeriod').addEventListener('click', () => {
   const p = parseInt($('#recPeriod').value) || 0;
   if (!date || !p) { toast('日付と時限を指定してください'); return; }
   setSubjectOverride(date, p, null);
-  const patSub = getPatternSubject(date, p);
-  $('#recSubject').value = patSub;
-  setRecSubjectDisplay(patSub);
-  refreshLastProgressHint();
-  refreshSubjectMemo();
+  closeRecordModal();
+  if ($('#view-week') && $('#view-week').classList.contains('active')) renderWeek();
+  renderExamCountPanel();
   toast('時間割どおりに戻しました');
 });
 $('#recDelete').addEventListener('click', () => {
