@@ -3537,16 +3537,54 @@ function renderWeek() {
 
   /* 各列(日付)の有効時限数を事前に算出 */
   const dayPeriodCounts = isos.map(iso => getEffectivePeriodCount(iso));
-  /* この週で実際に表示すべき最大時限数 */
-  const maxPeriodInWeek = Math.max(0, ...dayPeriodCounts);
+  /* この週で実際に表示すべき最大時限数:
+     通常の時限数に加え、dayOverrides で追加された授業コマも含めて算出する
+     （例: 土曜の dayPeriods が 0 でも、+授業 で追加されたコマは表示する） */
+  let maxPeriodInWeek = Math.max(0, ...dayPeriodCounts);
+  for (let d = 0; d < days; d++) {
+    const ov = state.dayOverrides && state.dayOverrides[isos[d]];
+    if (!ov) continue;
+    Object.keys(ov).forEach(k => {
+      const m = k.match(/^p(\d+)$/);
+      if (m && ov[k]) {
+        const pp = parseInt(m[1]);
+        if (pp > maxPeriodInWeek) maxPeriodInWeek = pp;
+      }
+    });
+  }
+
+  /* 授業コマ（時間割 or override）を表示するセルの HTML を生成する共通関数 */
+  const renderSubjectCell = (iso, p, eff, cellClsAttr) => {
+    /* ✓マーク条件: 「実施済み」ボタンが押された記録が存在 */
+    const hasRecord = state.records.some(r => r.date === iso && r.period === p && r.subject === eff.subject && r.done === true);
+    const recCls = hasRecord ? ' has-record' : '';
+    /* 適用開始日より前の日付は時間割スナップショット由来の override なので ※ を表示しない */
+    const _effPat = getEffectivePattern(iso);
+    const _ttSd = _effPat && state.timetables[_effPat] && state.timetables[_effPat].startDate;
+    const _isLockedPast = _ttSd && iso < _ttSd;
+    const ovMark = (eff.isOverride && !_isLockedPast) ? '<span class="wk-override-mark" title="この日だけの科目">※</span>' : '';
+    const col = getSubjectColor(eff.subject);
+    const colStyle = col ? ` style="color:${escapeHtml(col)}"` : '';
+    return `<td${cellClsAttr}>
+      <div class="wk-cell subject-cell${recCls}" data-iso="${iso}" data-period="${p}" data-subject="${escapeHtml(eff.subject)}" title="タップで授業記録を入力・直近の進度を確認">
+        <div class="wk-subject"${colStyle}>${escapeHtml(eff.subject)}${ovMark}</div>
+      </div>
+    </td>`;
+  };
 
   const periodRow = (p) => {
     let row = `<tr><td class="period-head">${p}限</td>`;
     for (let d = 0; d < days; d++) {
       const iso = isos[d];
       const cellClsAttr = holidays[d] ? ' class="holiday"' : '';
-      /* この日の時限数を超えるセルも、通常の空きコマと同じ形（予定textarea＋＋授業ボタン）にする */
+      /* この日の時限数を超えるセルでも、override で授業が追加されていれば授業コマとして表示する
+         （+授業 ボタンから土曜などに追加されたコマを表示するため） */
       if (p > dayPeriodCounts[d]) {
+        const ovEff = getEffectiveSubject(iso, p);
+        if (ovEff.subject) {
+          row += renderSubjectCell(iso, p, ovEff, cellClsAttr);
+          continue;
+        }
         const slotKey = `p${p}`;
         const val = getDayNote(iso, slotKey);
         row += `<td${cellClsAttr}><div class="wk-cell"><textarea class="day-note-input" data-iso="${iso}" data-slot="${slotKey}">${escapeHtml(val)}</textarea><button class="wk-add-subject" data-iso="${iso}" data-period="${p}" title="この日・時限に授業を追加">＋授業</button></div></td>`;
