@@ -2072,7 +2072,7 @@
     <div class="panel">
       <h2>このアプリについて</h2>
       <div class="help">
-        <span class="chip">v2.9</span>
+        <span class="chip">v2.9.1</span>
         教務手帳 — 高校教員向け、A/B時間割を月間カレンダーで日別に割り当てできるWebアプリです。年度ごとに時間割・記録・カレンダー設定を独立保存し、設定タブから年度を切り替えられます。日替わり時間割（曜日入替・時限範囲指定）、祝日登録、短縮授業（1コマ分数）の設定にも対応。データはブラウザの localStorage に保存され、設定タブから JSON でエクスポート／インポートできます。
       </div>
     </div>
@@ -5589,6 +5589,56 @@ updateTodoBadge();
 
 /* 保存状態インジケータを30秒ごとに更新（経過時間を再計算） */
 setInterval(updateHeaderStatus, 30 * 1000);
+
+/* ========== iPad: 保存（ダウンロード）や読込の画面から戻ったあと上部がぼける不具合の対策 ==========
+   iOS/iPadOS では、ダウンロードのプレビューやファイル選択の画面から戻ると、
+   画面の上端の位置（ステータスバー・ツールバーとの境目）がずれたままになることがある。
+   アプリを開き直すと直るのと同じ状態に戻すため、戻ってきた時点で表示を計算し直させる。 */
+function repairIOSViewport() {
+  if (!_isIOSDevice) return;
+  /* 1) viewport 設定を書き直して、Safari に画面サイズと余白を測り直させる */
+  const vp = document.querySelector('meta[name="viewport"]');
+  if (vp) {
+    const c = vp.getAttribute('content');
+    vp.setAttribute('content', c + ' ');
+    requestAnimationFrame(() => vp.setAttribute('content', c));
+  }
+  /* 2) レイアウトを強制的に計算し直す */
+  const html = document.documentElement;
+  html.style.transform = 'translateZ(0)';
+  void html.offsetHeight;
+  html.style.transform = '';
+  /* 3) スクロール位置を一度動かして戻す（ずれた表示位置をリセット） */
+  const y = window.scrollY;
+  window.scrollTo(0, y + 1);
+  window.scrollTo(0, y);
+}
+/* 少し間をおいて数回実行（戻るアニメーションが終わってから効かせるため） */
+function scheduleViewportRepair() {
+  [0, 150, 500, 1200].forEach(ms => setTimeout(repairIOSViewport, ms));
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') scheduleViewportRepair();
+});
+window.addEventListener('pageshow', scheduleViewportRepair);
+window.addEventListener('focus', scheduleViewportRepair);
+if (window.visualViewport) {
+  /* プレビューを閉じたときなどに表示領域の大きさが変わったら実行 */
+  let _vvTimer = null;
+  window.visualViewport.addEventListener('resize', () => {
+    clearTimeout(_vvTimer);
+    _vvTimer = setTimeout(repairIOSViewport, 200);
+  });
+}
+/* 保存・読込ボタンを押した直後と、ファイルを選んだ後にも実行 */
+['#headerExportBtn', '#btnExport', '#headerImportBtn', '#btnImport'].forEach(sel => {
+  const b = $(sel);
+  if (b) b.addEventListener('click', () => {
+    scheduleViewportRepair();
+    setTimeout(scheduleViewportRepair, 2000);
+  });
+});
+$('#fileInput').addEventListener('change', scheduleViewportRepair);
 
 /* タブを閉じる/離脱しようとしたとき、未保存の編集があれば確認ダイアログ */
 window.addEventListener('beforeunload', (e) => {
