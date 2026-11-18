@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="教務手帳">
 <meta name="format-detection" content="telephone=no">
+<!-- Safari のツールバー／ステータスバーをヘッダと同じ色にする（上部のぼけ・色ムラ対策） -->
+<meta name="theme-color" content="#1f1f1f">
 <title>教務手帳</title>
 <style>
   :root {
@@ -90,11 +92,6 @@
     padding-left: calc(16px + env(safe-area-inset-left));
     padding-right: calc(16px + env(safe-area-inset-right));
   }
-  main { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
-  .kbd-dismiss {
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    right: calc(12px + env(safe-area-inset-right));
-  }
   /* 長押しによる iOS のコンテキストメニュー(コピー/共有等)を抑止
      — カレンダー・週間・進度などのインタラクティブ要素 */
   table.cal-grid td, table.week-grid td, table.week-grid th,
@@ -113,7 +110,10 @@
   header {
     background: var(--accent);
     color: #fff;
-    padding: 6px 16px;
+    /* padding は上の safe-area 対応ルール（padding-top/left/right）を上書きしないよう下端だけ指定 */
+    padding-bottom: 6px;
+    /* 上端に固定し、Safari の半透明ツールバーの下に本文が入り込んでぼけるのを防ぐ */
+    position: sticky; top: 0; z-index: 60;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -183,7 +183,10 @@
   }
   nav.tabs button.pat-A-tab.active { color: var(--pat-a); border-bottom-color: var(--pat-a); }
   nav.tabs button.pat-B-tab.active { color: var(--pat-b); border-bottom-color: var(--pat-b); }
-  main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+  main {
+    padding: 20px calc(20px + env(safe-area-inset-right)) 20px calc(20px + env(safe-area-inset-left));
+    max-width: 1200px; margin: 0 auto;
+  }
   .view { display: none; }
   .view.active { display: block; }
 
@@ -1011,7 +1014,9 @@
   }
   /* キーボード閉じるボタン（フォーカス中のみ表示） */
   .kbd-dismiss {
-    position: fixed; right: 12px; bottom: 12px;
+    position: fixed;
+    right: calc(12px + env(safe-area-inset-right));
+    bottom: calc(12px + env(safe-area-inset-bottom));
     background: var(--accent); color: #fff;
     border: none; border-radius: 999px;
     padding: 12px 18px; font-size: 14px; font-weight: 600;
