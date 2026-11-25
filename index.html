@@ -1986,8 +1986,8 @@
           <select id="attSubjectSel"></select>
         </div>
         <div class="field">
-          <label>表示月</label>
-          <input type="month" id="attMonthSel">
+          <label>考査期間</label>
+          <select id="attExamSel"></select>
         </div>
         <div class="field" style="align-self:flex-end;">
           <button class="btn secondary small" id="attExport">欠席データをCSV出力</button>
@@ -2287,7 +2287,10 @@
       <div class="form-row one">
         <div class="field">
           <label>科目</label>
-          <div id="recSubjectDisp" class="readonly-disp">—</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <div id="recSubjectDisp" class="readonly-disp" style="flex:1;">—</div>
+            <button class="btn secondary small" type="button" id="recAttendBtn" style="white-space:nowrap;">欠席登録</button>
+          </div>
           <div id="recSubjectPickInline" class="subj-pick-inline" style="display:none;"></div>
           <input id="recSubject" type="hidden">
         </div>
@@ -2324,19 +2327,27 @@
       <div class="btn-row" style="margin-top:6px;">
         <button class="btn secondary small" id="recDeletePeriod" title="この日・時限の授業コマを週間カレンダーから非表示にします">このコマを削除</button>
         <button class="btn secondary small" id="recResetPeriod" title="この日・時限を時間割A/Bの元の科目に戻します">時間割どおりに戻す</button>
-        <button class="btn secondary small" id="recAttendBtn">欠席登録</button>
       </div>
-      <div id="recAttendPanel" class="att-reg-wrap" style="display:none;">
-        <div class="att-reg-head">欠席登録 — <span id="recAttendSubj"></span></div>
-        <div class="att-reg-legend">
-          <span class="lg"><span class="sw" style="background:#fff;"></span>出席</span>
-          <span class="lg"><span class="sw" style="background:#ffebee; border-color:#ef9a9a;"></span>欠席</span>
-          <span class="lg"><span class="sw" style="background:#fff3e0; border-color:#ffb74d;"></span>遅刻</span>
-          <span class="lg"><span class="sw" style="background:#f3e5f5; border-color:#ce93d8;"></span>保健室</span>
-          <span style="color:var(--muted);">タップで循環</span>
-        </div>
-        <div id="recAttendGrid" class="att-reg-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 欠席登録ポップアップ -->
+<div class="rec-modal-bg" id="attendModalBg">
+  <div class="rec-modal" style="max-width:640px;">
+    <div class="rec-modal-head">
+      <span class="rec-modal-title">欠席登録 — <span id="recAttendSubj"></span></span>
+      <button type="button" id="attendModalClose">閉じる ✕</button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="att-reg-legend">
+        <span class="lg"><span class="sw" style="background:#fff;"></span>出席</span>
+        <span class="lg"><span class="sw" style="background:#ffebee; border-color:#ef9a9a;"></span>欠席</span>
+        <span class="lg"><span class="sw" style="background:#fff3e0; border-color:#ffb74d;"></span>遅刻</span>
+        <span class="lg"><span class="sw" style="background:#f3e5f5; border-color:#ce93d8;"></span>保健室</span>
+        <span style="color:var(--muted);">タップで循環</span>
       </div>
+      <div id="recAttendGrid" class="att-reg-grid" style="margin-top:10px;"></div>
     </div>
   </div>
 </div>
@@ -5849,8 +5860,7 @@ function setAttStatus(date, period, subject, seatNo, status) {
   }
 }
 
-/* ========== 記録ポップアップ内 欠席登録UI ========== */
-let _recAttendOpen = false;
+/* ========== 欠席登録ポップアップ ========== */
 function openRecAttendPanel() {
   const subject = ($('#recSubject').value || '').trim();
   const date = $('#recDate').value;
@@ -5859,16 +5869,21 @@ function openRecAttendPanel() {
   if (!date || !period) { toast('日付・時限が指定されていません'); return; }
   ensureAbsenceConfig();
   $('#recAttendSubj').textContent = subject;
-  const panel = $('#recAttendPanel');
-  panel.style.display = '';
-  _recAttendOpen = true;
+  const bg = $('#attendModalBg');
+  if (bg) bg.classList.add('show');
   renderRecAttendGrid(date, period, subject);
 }
 function closeRecAttendPanel() {
-  const panel = $('#recAttendPanel');
-  if (panel) panel.style.display = 'none';
-  _recAttendOpen = false;
+  const bg = $('#attendModalBg');
+  if (bg) bg.classList.remove('show');
 }
+/* 閉じるボタン・背景クリック */
+(function bindAttendModal() {
+  const btn = $('#attendModalClose');
+  if (btn) btn.addEventListener('click', closeRecAttendPanel);
+  const bg = $('#attendModalBg');
+  if (bg) bg.addEventListener('click', (e) => { if (e.target.id === 'attendModalBg') closeRecAttendPanel(); });
+})();
 function renderRecAttendGrid(date, period, subject) {
   const wrap = $('#recAttendGrid');
   const cfg = (state.seatConfig || {})[subject];
@@ -5907,10 +5922,7 @@ function renderRecAttendGrid(date, period, subject) {
   });
 }
 const _recAttBtn = $('#recAttendBtn');
-if (_recAttBtn) _recAttBtn.addEventListener('click', () => {
-  if (_recAttendOpen) closeRecAttendPanel();
-  else openRecAttendPanel();
-});
+if (_recAttBtn) _recAttBtn.addEventListener('click', openRecAttendPanel);
 /* ポップアップを開き直すとき＆閉じるときに欠席パネルも閉じる */
 const _origOpenRecordModal = openRecordModal;
 openRecordModal = function() {
@@ -5924,7 +5936,7 @@ closeRecordModal = function() {
 };
 
 /* ========== 出席簿タブ ========== */
-let _attendState = { subject: '', month: '' };
+let _attendState = { subject: '', examId: '' };
 function getAttendClassSubjects() {
   /* 出席番号範囲が設定されているクラスを優先、設定なしは下に */
   const all = gatherAllSubjects();
@@ -5947,15 +5959,59 @@ function renderAttend() {
     _attendState.subject = subjects[0] || '';
   }
   sel.value = _attendState.subject;
-  const mSel = $('#attMonthSel');
-  if (!_attendState.month) {
-    const t = new Date();
-    _attendState.month = t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0');
+  /* 考査期間セレクタ */
+  const eSel = $('#attExamSel');
+  const periods = (state.examPeriods || []).slice()
+    .sort((a,b) => (a.end||'').localeCompare(b.end||''));
+  if (!periods.length) {
+    eSel.innerHTML = '<option value="">（考査期間未登録）</option>';
+    _attendState.examId = '';
+  } else {
+    eSel.innerHTML = periods.map(ep =>
+      `<option value="${escapeHtml(ep.id)}">${escapeHtml(ep.name||'考査')}${ep.start?' ('+ep.start:' ('}〜${ep.end||''})</option>`
+    ).join('');
+    if (!_attendState.examId || !periods.find(p => p.id === _attendState.examId)) {
+      /* 今日に対応する期間 or 最新 */
+      const today = todayStr();
+      const cur = periods.find(p => (!p.start || p.start <= today) && (!p.end || today <= p.end));
+      _attendState.examId = (cur || periods[periods.length - 1]).id;
+    }
+    eSel.value = _attendState.examId;
   }
-  mSel.value = _attendState.month;
   renderAttendGrid();
   renderAttendWarnings();
 }
+
+/* あるクラスの「実施済み授業」があった日を考査期間に絞って取得（昇順） */
+function getLessonDatesForSubject(subject, periodStart, periodEnd) {
+  const set = new Set();
+  (state.records || []).forEach(r => {
+    if (!r.done || r.subject !== subject || !r.date) return;
+    if (periodStart && r.date < periodStart) return;
+    if (periodEnd && r.date > periodEnd) return;
+    set.add(r.date);
+  });
+  return Array.from(set).sort();
+}
+
+/* 期間終了日までの累計欠席（席番ごと） */
+function countAbsencesBySeatUntil(subject, untilIso) {
+  const out = {};
+  const att = state.attendance || {};
+  Object.keys(att).forEach(date => {
+    if (untilIso && date > untilIso) return;
+    const byP = att[date] || {};
+    Object.keys(byP).forEach(p => {
+      const seats = (byP[p] || {})[subject];
+      if (!seats) return;
+      Object.entries(seats).forEach(([sn, st]) => {
+        if (st === 'absent' || st === 'infirmary') out[sn] = (out[sn] || 0) + 1;
+      });
+    });
+  });
+  return out;
+}
+
 function renderAttendGrid() {
   const wrap = $('#attGridWrap');
   const subject = _attendState.subject;
@@ -5965,32 +6021,33 @@ function renderAttendGrid() {
     wrap.innerHTML = '<div class="help">この授業の出席番号範囲が未設定です。設定タブ「出欠席管理」で登録してください。</div>';
     return;
   }
-  const [yStr, mStr] = (_attendState.month || '').split('-');
-  const y = parseInt(yStr), m = parseInt(mStr);
-  if (!y || !m) { wrap.innerHTML = '<div class="help">表示月を選択してください。</div>'; return; }
-  const daysInMonth = new Date(y, m, 0).getDate();
-  const bySeat = countAbsencesForSubjectBySeat(subject);
-  let html = '<table class="att-grid"><thead><tr><th class="att-seat-head">席番</th>';
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dt = new Date(y, m-1, d);
-    const wd = (dt.getDay() + 6) % 7; /* 0=月..6=日 */
-    const wdCh = ['月','火','水','木','金','土','日'][wd];
-    html += `<th>${d}<br><span style="font-size:9px; color:${wd>=5?'#c62828':'#666'}">${wdCh}</span></th>`;
+  const periods = (state.examPeriods || []).slice()
+    .sort((a,b) => (a.end||'').localeCompare(b.end||''));
+  const ep = periods.find(x => x.id === _attendState.examId);
+  if (!ep) { wrap.innerHTML = '<div class="help">考査期間を選択してください（未登録の場合は設定タブ「考査対象期間」で追加）。</div>'; return; }
+  const dates = getLessonDatesForSubject(subject, ep.start, ep.end);
+  const bySeat = countAbsencesBySeatUntil(subject, ep.end || null);
+  if (!dates.length) {
+    wrap.innerHTML = `<div class="help">この考査期間（${ep.start||''}〜${ep.end||''}）に実施済みの「${escapeHtml(subject)}」の授業はありません。</div>`;
+    return;
   }
-  html += '<th class="att-seat-head">累計</th></tr></thead><tbody>';
+  let html = '<table class="att-grid"><thead><tr><th class="att-seat-head">席番</th>';
+  dates.forEach(iso => {
+    const [y,m,d] = iso.split('-').map(x => parseInt(x));
+    const dt = new Date(y, m-1, d);
+    const wd = (dt.getDay() + 6) % 7;
+    const wdCh = ['月','火','水','木','金','土','日'][wd];
+    html += `<th>${m}/${d}<br><span style="font-size:9px; color:${wd>=5?'#c62828':'#666'}">${wdCh}</span></th>`;
+  });
+  html += `<th class="att-seat-head">累計<br><span style="font-size:9px; color:#666; font-weight:normal;">（〜${ep.end||'期間末'}）</span></th></tr></thead><tbody>`;
   for (let n = cfg.start; n <= cfg.end; n++) {
     html += `<tr><td class="att-seat">${n}</td>`;
-    for (let d = 1; d <= daysInMonth; d++) {
-      const iso = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      const dt = new Date(y, m-1, d);
-      const wd = dt.getDay();
-      const holiday = isHolidayAny ? isHolidayAny(iso) : false;
+    dates.forEach(iso => {
       const dayByP = (state.attendance || {})[iso] || {};
       let st = '';
       Object.keys(dayByP).forEach(p => {
         const seats = (dayByP[p] || {})[subject];
         if (seats && seats[n]) {
-          /* 同日複数コマは最も重い状態を表示: 欠席>遅刻>保健室 */
           const cur = seats[n];
           if (cur === 'absent') st = 'absent';
           else if (cur === 'infirmary' && st !== 'absent') st = 'infirmary';
@@ -6001,10 +6058,8 @@ function renderAttendGrid() {
       if (st === 'absent') { cls = 'att-absent'; ch = '／'; }
       else if (st === 'late') { cls = 'att-late'; ch = '×'; }
       else if (st === 'infirmary') { cls = 'att-infirmary'; ch = '保'; }
-      else if (holiday) cls = 'att-holiday';
-      else if (wd === 0 || wd === 6) cls = 'att-weekend';
       html += `<td class="${cls}">${ch}</td>`;
-    }
+    });
     html += `<td class="att-total">${bySeat[n] || 0}</td></tr>`;
   }
   html += '</tbody></table>';
@@ -6019,7 +6074,11 @@ function renderAttendWarnings() {
   const muls = state.absenceConfig.multipliers || [4,6,7];
   const msgs = state.absenceConfig.messages || [];
   if (!credits) { wrap.innerHTML = '<div class="help">単位数未設定（警告なし）</div>'; return; }
-  const bySeat = countAbsencesForSubjectBySeat(subject);
+  const periods = (state.examPeriods || []).slice()
+    .sort((a,b) => (a.end||'').localeCompare(b.end||''));
+  const ep = periods.find(x => x.id === _attendState.examId);
+  const until = ep && ep.end ? ep.end : null;
+  const bySeat = countAbsencesBySeatUntil(subject, until);
   const thresholds = muls.map(x => credits * x);
   const items = [];
   Object.entries(bySeat).forEach(([sn, cnt]) => {
@@ -6047,10 +6106,11 @@ function renderAttendWarnings() {
     renderAttendGrid();
     renderAttendWarnings();
   });
-  const mSel = $('#attMonthSel');
-  if (mSel) mSel.addEventListener('change', () => {
-    _attendState.month = mSel.value;
+  const eSel = $('#attExamSel');
+  if (eSel) eSel.addEventListener('change', () => {
+    _attendState.examId = eSel.value;
     renderAttendGrid();
+    renderAttendWarnings();
   });
   const expBtn = $('#attExport');
   if (expBtn) expBtn.addEventListener('click', exportAttendanceCSV);
