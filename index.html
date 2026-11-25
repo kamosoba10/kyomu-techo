@@ -7,8 +7,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="教務手帳">
 <meta name="format-detection" content="telephone=no">
-<!-- Safari のツールバー／ステータスバーをヘッダと同じ色にする（上部のぼけ・色ムラ対策） -->
-<meta name="theme-color" content="#1f1f1f">
 <title>教務手帳</title>
 <style>
   :root {
@@ -92,6 +90,11 @@
     padding-left: calc(16px + env(safe-area-inset-left));
     padding-right: calc(16px + env(safe-area-inset-right));
   }
+  main { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+  .kbd-dismiss {
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    right: calc(12px + env(safe-area-inset-right));
+  }
   /* 長押しによる iOS のコンテキストメニュー(コピー/共有等)を抑止
      — カレンダー・週間・進度などのインタラクティブ要素 */
   table.cal-grid td, table.week-grid td, table.week-grid th,
@@ -110,10 +113,7 @@
   header {
     background: var(--accent);
     color: #fff;
-    /* padding は上の safe-area 対応ルール（padding-top/left/right）を上書きしないよう下端だけ指定 */
-    padding-bottom: 6px;
-    /* 上端に固定し、Safari の半透明ツールバーの下に本文が入り込んでぼけるのを防ぐ */
-    position: sticky; top: 0; z-index: 60;
+    padding: 6px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -183,10 +183,7 @@
   }
   nav.tabs button.pat-A-tab.active { color: var(--pat-a); border-bottom-color: var(--pat-a); }
   nav.tabs button.pat-B-tab.active { color: var(--pat-b); border-bottom-color: var(--pat-b); }
-  main {
-    padding: 20px calc(20px + env(safe-area-inset-right)) 20px calc(20px + env(safe-area-inset-left));
-    max-width: 1200px; margin: 0 auto;
-  }
+  main { padding: 20px; max-width: 1200px; margin: 0 auto; }
   .view { display: none; }
   .view.active { display: block; }
 
@@ -302,6 +299,99 @@
     font-size: 11px; font-family: inherit;
   }
   .exam-periods-grid .ep-del:hover { background: #ffeeee; }
+
+  /* 出欠席管理 設定グリッド */
+  .abs-grid { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .abs-grid th, .abs-grid td {
+    border: 1px solid var(--line);
+    padding: 6px 8px;
+    font-size: 13px;
+    text-align: left;
+  }
+  .abs-grid th { background: #f4f4f4; font-weight: 600; }
+  .abs-grid input[type="number"] {
+    width: 70px; height: 32px;
+    border: 1px solid var(--line);
+    border-radius: 6px; padding: 2px 6px;
+    font-size: 14px;
+  }
+
+  /* 出席簿グリッド */
+  .att-grid-wrap table.att-grid {
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+  .att-grid th, .att-grid td {
+    border: 1px solid var(--line);
+    padding: 2px 4px;
+    text-align: center;
+    min-width: 22px;
+    height: 24px;
+    white-space: nowrap;
+  }
+  .att-grid th.att-seat-head { position: sticky; left: 0; background: #f4f4f4; z-index: 2; min-width: 44px; }
+  .att-grid td.att-seat { position: sticky; left: 0; background: #fafafa; font-weight: 600; z-index: 1; min-width: 44px; }
+  .att-grid th { background: #f4f4f4; font-weight: 600; font-size: 10px; }
+  .att-grid td.att-absent { color: #c62828; font-weight: 700; }
+  .att-grid td.att-late { color: #ef6c00; font-weight: 700; }
+  .att-grid td.att-infirmary { color: #6a1b9a; font-weight: 700; }
+  .att-grid td.att-total { background: #fff3e0; font-weight: 700; }
+  .att-grid td.att-weekend { background: #f0f0f0; color: #999; }
+  .att-grid td.att-holiday { background: #ffe9e9; color: #c62828; }
+
+  /* 出席簿 警告 */
+  .att-warnings .att-warn-item {
+    border-left: 4px solid #c62828;
+    background: #fff5f5;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .att-warnings .att-warn-lv1 { border-left-color: #f57c00; background: #fff8ef; }
+  .att-warnings .att-warn-lv2 { border-left-color: #d84315; background: #fff2eb; }
+  .att-warnings .att-warn-lv3 { border-left-color: #b71c1c; background: #ffebee; }
+
+  /* 欠席登録 座席グリッド（記録ポップアップ内） */
+  .att-reg-wrap { margin-top: 8px; padding: 10px; border: 1px dashed var(--line); border-radius: 8px; background: #fafafa; }
+  .att-reg-head { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--ink); }
+  .att-reg-legend {
+    font-size: 11px; color: var(--muted); margin-bottom: 8px;
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .att-reg-legend .lg { display: inline-flex; align-items: center; gap: 4px; }
+  .att-reg-legend .sw { width: 14px; height: 14px; border: 1px solid var(--line); border-radius: 3px; display: inline-block; }
+  .att-reg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 6px;
+  }
+  .att-reg-seat {
+    min-height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    touch-action: manipulation;
+  }
+  .att-reg-seat.st-absent { background: #ffebee; color: #c62828; border-color: #ef9a9a; }
+  .att-reg-seat.st-late { background: #fff3e0; color: #ef6c00; border-color: #ffb74d; }
+  .att-reg-seat.st-infirmary { background: #f3e5f5; color: #6a1b9a; border-color: #ce93d8; }
+  .att-reg-nocls { font-size: 12px; color: var(--muted); font-style: italic; padding: 10px; }
+
+  /* 月間カレンダーDPOリスト折りたたみ */
+  .dpo-list-toggle {
+    margin-top: 8px;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .dpo-list-collapse { display: none; }
+  .dpo-list-collapse.show { display: block; }
   .exam-periods-grid .ep-empty { text-align: center; color: var(--muted); padding: 12px; }
   /* 授業進度タブ */
   .prog-undone-badge {
@@ -1014,9 +1104,7 @@
   }
   /* キーボード閉じるボタン（フォーカス中のみ表示） */
   .kbd-dismiss {
-    position: fixed;
-    right: calc(12px + env(safe-area-inset-right));
-    bottom: calc(12px + env(safe-area-inset-bottom));
+    position: fixed; right: 12px; bottom: 12px;
     background: var(--accent); color: #fff;
     border: none; border-radius: 999px;
     padding: 12px 18px; font-size: 14px; font-weight: 600;
@@ -1648,6 +1736,7 @@
   <button data-tab="progress">授業進度</button>
   <button data-tab="todos">todo <span class="badge" id="todoBadge" style="display:none;">0</span></button>
   <button data-tab="docs">資料</button>
+  <button data-tab="attend">出席簿</button>
   <button data-tab="settings">設定</button>
 </nav>
 
@@ -1887,6 +1976,32 @@
   </section>
 
   <!-- ===== 設定 ===== -->
+  <!-- ===== 出席簿 ===== -->
+  <section id="view-attend" class="view">
+    <div class="panel">
+      <h2>出席簿</h2>
+      <div class="settings-row">
+        <div class="field">
+          <label>授業（クラス）</label>
+          <select id="attSubjectSel"></select>
+        </div>
+        <div class="field">
+          <label>表示月</label>
+          <input type="month" id="attMonthSel">
+        </div>
+        <div class="field" style="align-self:flex-end;">
+          <button class="btn secondary small" id="attExport">欠席データをCSV出力</button>
+        </div>
+      </div>
+      <div id="attWarnings" class="att-warnings" style="margin-top:8px;"></div>
+      <div id="attGridWrap" class="att-grid-wrap" style="margin-top:10px; overflow-x:auto;"></div>
+      <div class="help" style="margin-top:8px;">
+        グリッドセル: ／＝欠席 ×＝遅刻 保＝保健室（空＝出席）。右端は欠席累計（保健室を含む）。<br>
+        CSV出力は考査期間ごとの小計と累計を、クラスごとに出席番号順で出します。Excelで開けます。
+      </div>
+    </div>
+  </section>
+
   <section id="view-settings" class="view">
     <div class="panel">
       <h2>年度の管理</h2>
@@ -2052,6 +2167,48 @@
       </div>
     </div>
     <div class="panel">
+      <h2>出欠席管理</h2>
+      <div class="help" style="margin-bottom:10px;">
+        各授業の<strong>出席番号の範囲</strong>、<strong>単位数</strong>、警告閾値を設定できます。警告は「単位数 × ×N」で計算され、閾値到達時に出席簿や週間カレンダーからの欠席登録時にポップアップで通知します。
+      </div>
+      <h3 style="font-size:14px; margin:12px 0 6px;">共通設定（×Nと警告メッセージ）</h3>
+      <div class="settings-row">
+        <div class="field">
+          <label>×N（レベル1）</label>
+          <input type="number" min="1" id="absMul1" style="width:70px;">
+        </div>
+        <div class="field">
+          <label>×N（レベル2）</label>
+          <input type="number" min="1" id="absMul2" style="width:70px;">
+        </div>
+        <div class="field">
+          <label>×N（レベル3）</label>
+          <input type="number" min="1" id="absMul3" style="width:70px;">
+        </div>
+      </div>
+      <div class="settings-row" style="flex-direction:column; align-items:stretch; gap:6px; margin-top:6px;">
+        <div class="field"><label>警告メッセージ（レベル1）</label>
+          <input type="text" id="absMsg1"></div>
+        <div class="field"><label>警告メッセージ（レベル2）</label>
+          <input type="text" id="absMsg2"></div>
+        <div class="field"><label>警告メッセージ（レベル3）</label>
+          <input type="text" id="absMsg3"></div>
+      </div>
+      <h3 style="font-size:14px; margin:14px 0 6px;">授業ごとの設定（出席番号範囲・単位数）</h3>
+      <table class="abs-grid" id="absGrid"></table>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn secondary small" id="absRefresh">科目一覧を更新</button>
+      </div>
+      <div class="help" style="margin-top:6px;">
+        科目マスタの授業＋時間割に出てくる授業が自動的に並びます。出席番号の範囲は 1〜40 のように指定してください。
+      </div>
+      <div class="section-save-bar">
+        <span class="section-dirty-ind" id="absDirtyInd" style="display:none;">未保存</span>
+        <button type="button" class="btn" id="absSaveBtn">出欠席管理を保存</button>
+        <button type="button" class="btn secondary" id="absCancelBtn">変更を破棄</button>
+      </div>
+    </div>
+    <div class="panel">
       <h2>データの保存・読込（iCloud Drive 同期運用）</h2>
       <div class="help" style="margin-bottom:10px;">
         本アプリのデータはブラウザの <code>localStorage</code> に保存されます。Mac/iPad/iPhone の3デバイスで同じデータを使うには、<strong>iCloud Drive 上の固定ファイル（<code>kyomu-techo-data.json</code>）</strong> を介して手動で同期します。
@@ -2072,7 +2229,7 @@
     <div class="panel">
       <h2>このアプリについて</h2>
       <div class="help">
-        <span class="chip">v2.9.1</span>
+        <span class="chip">v2.9</span>
         教務手帳 — 高校教員向け、A/B時間割を月間カレンダーで日別に割り当てできるWebアプリです。年度ごとに時間割・記録・カレンダー設定を独立保存し、設定タブから年度を切り替えられます。日替わり時間割（曜日入替・時限範囲指定）、祝日登録、短縮授業（1コマ分数）の設定にも対応。データはブラウザの localStorage に保存され、設定タブから JSON でエクスポート／インポートできます。
       </div>
     </div>
@@ -2167,6 +2324,18 @@
       <div class="btn-row" style="margin-top:6px;">
         <button class="btn secondary small" id="recDeletePeriod" title="この日・時限の授業コマを週間カレンダーから非表示にします">このコマを削除</button>
         <button class="btn secondary small" id="recResetPeriod" title="この日・時限を時間割A/Bの元の科目に戻します">時間割どおりに戻す</button>
+        <button class="btn secondary small" id="recAttendBtn">欠席登録</button>
+      </div>
+      <div id="recAttendPanel" class="att-reg-wrap" style="display:none;">
+        <div class="att-reg-head">欠席登録 — <span id="recAttendSubj"></span></div>
+        <div class="att-reg-legend">
+          <span class="lg"><span class="sw" style="background:#fff;"></span>出席</span>
+          <span class="lg"><span class="sw" style="background:#ffebee; border-color:#ef9a9a;"></span>欠席</span>
+          <span class="lg"><span class="sw" style="background:#fff3e0; border-color:#ffb74d;"></span>遅刻</span>
+          <span class="lg"><span class="sw" style="background:#f3e5f5; border-color:#ce93d8;"></span>保健室</span>
+          <span style="color:var(--muted);">タップで循環</span>
+        </div>
+        <div id="recAttendGrid" class="att-reg-grid"></div>
       </div>
     </div>
   </div>
@@ -2343,7 +2512,19 @@ function defaultData() {
     documents: [],             /* 資料: { id, title, category, src, addedAt } */
     examDate: '',              /* 旧: 互換のため残す */
     examPeriods: [],           /* 新: [{ id, name, start, end }] */
-    dayMemos: {}               /* 1日の予定タブ用メモ key=ISO */
+    dayMemos: {},              /* 1日の予定タブ用メモ key=ISO */
+    /* 出欠席管理 */
+    seatConfig: {},            /* { subject: { start, end } } */
+    attendance: {},            /* { date: { period: { subject: { seatNo: 'absent'|'late'|'infirmary' } } } } */
+    absenceConfig: {           /* 警告閾値設定 */
+      credits: {},             /* { subject: 単位数 } */
+      multipliers: [4, 6, 7],  /* 全授業共通 */
+      messages: [
+        '欠席が4×単位数回に達しました。注意してください。',
+        '欠席が6×単位数回に達しました。保護者連絡を検討してください。',
+        '欠席が7×単位数回に達しました。単位取得が危ぶまれます。'
+      ]
+    }
   };
 }
 
@@ -2453,6 +2634,18 @@ function migrate(d) {
   base.examPeriods = d.examPeriods || [];
   if ((!base.examPeriods || base.examPeriods.length === 0) && base.examDate) {
     base.examPeriods = [{ id: uid(), name: '考査', start: '', end: base.examDate }];
+  }
+  /* 出欠席管理データの引き継ぎ */
+  base.seatConfig = d.seatConfig || {};
+  base.attendance = d.attendance || {};
+  if (d.absenceConfig && typeof d.absenceConfig === 'object') {
+    base.absenceConfig = {
+      credits: d.absenceConfig.credits || {},
+      multipliers: Array.isArray(d.absenceConfig.multipliers) && d.absenceConfig.multipliers.length === 3
+        ? d.absenceConfig.multipliers : [4, 6, 7],
+      messages: Array.isArray(d.absenceConfig.messages) && d.absenceConfig.messages.length === 3
+        ? d.absenceConfig.messages : base.absenceConfig.messages
+    };
   }
   ensureDayPeriods(base.config);
   return base;
@@ -2825,6 +3018,7 @@ function switchTab(name) {
   if (name === 'docs') { renderDocuments(); refreshDocCats(); }
   if (name === 'progress') { renderExamCountPanel(); renderProgress(); }
   if (name === 'dayplan') { renderDayplan(); }
+  if (name === 'attend') { renderAttend(); }
 }
 $$('nav.tabs button').forEach(b => {
   b.addEventListener('click', () => switchTab(b.dataset.tab));
@@ -3542,54 +3736,16 @@ function renderWeek() {
 
   /* 各列(日付)の有効時限数を事前に算出 */
   const dayPeriodCounts = isos.map(iso => getEffectivePeriodCount(iso));
-  /* この週で実際に表示すべき最大時限数:
-     通常の時限数に加え、dayOverrides で追加された授業コマも含めて算出する
-     （例: 土曜の dayPeriods が 0 でも、+授業 で追加されたコマは表示する） */
-  let maxPeriodInWeek = Math.max(0, ...dayPeriodCounts);
-  for (let d = 0; d < days; d++) {
-    const ov = state.dayOverrides && state.dayOverrides[isos[d]];
-    if (!ov) continue;
-    Object.keys(ov).forEach(k => {
-      const m = k.match(/^p(\d+)$/);
-      if (m && ov[k]) {
-        const pp = parseInt(m[1]);
-        if (pp > maxPeriodInWeek) maxPeriodInWeek = pp;
-      }
-    });
-  }
-
-  /* 授業コマ（時間割 or override）を表示するセルの HTML を生成する共通関数 */
-  const renderSubjectCell = (iso, p, eff, cellClsAttr) => {
-    /* ✓マーク条件: 「実施済み」ボタンが押された記録が存在 */
-    const hasRecord = state.records.some(r => r.date === iso && r.period === p && r.subject === eff.subject && r.done === true);
-    const recCls = hasRecord ? ' has-record' : '';
-    /* 適用開始日より前の日付は時間割スナップショット由来の override なので ※ を表示しない */
-    const _effPat = getEffectivePattern(iso);
-    const _ttSd = _effPat && state.timetables[_effPat] && state.timetables[_effPat].startDate;
-    const _isLockedPast = _ttSd && iso < _ttSd;
-    const ovMark = (eff.isOverride && !_isLockedPast) ? '<span class="wk-override-mark" title="この日だけの科目">※</span>' : '';
-    const col = getSubjectColor(eff.subject);
-    const colStyle = col ? ` style="color:${escapeHtml(col)}"` : '';
-    return `<td${cellClsAttr}>
-      <div class="wk-cell subject-cell${recCls}" data-iso="${iso}" data-period="${p}" data-subject="${escapeHtml(eff.subject)}" title="タップで授業記録を入力・直近の進度を確認">
-        <div class="wk-subject"${colStyle}>${escapeHtml(eff.subject)}${ovMark}</div>
-      </div>
-    </td>`;
-  };
+  /* この週で実際に表示すべき最大時限数 */
+  const maxPeriodInWeek = Math.max(0, ...dayPeriodCounts);
 
   const periodRow = (p) => {
     let row = `<tr><td class="period-head">${p}限</td>`;
     for (let d = 0; d < days; d++) {
       const iso = isos[d];
       const cellClsAttr = holidays[d] ? ' class="holiday"' : '';
-      /* この日の時限数を超えるセルでも、override で授業が追加されていれば授業コマとして表示する
-         （+授業 ボタンから土曜などに追加されたコマを表示するため） */
+      /* この日の時限数を超えるセルも、通常の空きコマと同じ形（予定textarea＋＋授業ボタン）にする */
       if (p > dayPeriodCounts[d]) {
-        const ovEff = getEffectiveSubject(iso, p);
-        if (ovEff.subject) {
-          row += renderSubjectCell(iso, p, ovEff, cellClsAttr);
-          continue;
-        }
         const slotKey = `p${p}`;
         const val = getDayNote(iso, slotKey);
         row += `<td${cellClsAttr}><div class="wk-cell"><textarea class="day-note-input" data-iso="${iso}" data-slot="${slotKey}">${escapeHtml(val)}</textarea><button class="wk-add-subject" data-iso="${iso}" data-period="${p}" title="この日・時限に授業を追加">＋授業</button></div></td>`;
@@ -5576,6 +5732,548 @@ if (_kbdBtn) _kbdBtn.style.display = 'none';
     settingsSect.insertBefore(calSect, settingsSect.firstChild);
   }
 })();
+/* ========== 出欠席管理 ========== */
+function ensureAbsenceConfig() {
+  if (!state.absenceConfig) {
+    state.absenceConfig = { credits: {}, multipliers: [4,6,7],
+      messages: ['欠席が4×単位数回に達しました。','欠席が6×単位数回に達しました。','欠席が7×単位数回に達しました。'] };
+  }
+  if (!state.seatConfig) state.seatConfig = {};
+  if (!state.attendance) state.attendance = {};
+}
+
+/* 授業ごとの欠席累計（保健室含む）を日付で絞って算出 */
+function countAbsencesForSubject(subject, untilIso) {
+  ensureAbsenceConfig();
+  let count = 0;
+  const att = state.attendance || {};
+  Object.keys(att).forEach(date => {
+    if (untilIso && date > untilIso) return;
+    const byP = att[date] || {};
+    Object.keys(byP).forEach(p => {
+      const bySub = byP[p] || {};
+      const seats = bySub[subject];
+      if (!seats) return;
+      Object.values(seats).forEach(st => {
+        if (st === 'absent' || st === 'infirmary') count++;
+      });
+    });
+  });
+  return count;
+}
+
+/* 出席番号単位の欠席数カウント */
+function countAbsencesForSubjectBySeat(subject, untilIso) {
+  const out = {}; /* seatNo -> count */
+  const att = state.attendance || {};
+  Object.keys(att).forEach(date => {
+    if (untilIso && date > untilIso) return;
+    const byP = att[date] || {};
+    Object.keys(byP).forEach(p => {
+      const seats = (byP[p] || {})[subject];
+      if (!seats) return;
+      Object.entries(seats).forEach(([sn, st]) => {
+        if (st === 'absent' || st === 'infirmary') out[sn] = (out[sn] || 0) + 1;
+      });
+    });
+  });
+  return out;
+}
+
+/* 考査期間ごとの集計 { periodId: { seatNo: { absent, late, infirmary } } } */
+function tallyAttendanceByExam(subject) {
+  const periods = (state.examPeriods || []).slice()
+    .sort((a,b) => (a.end||'').localeCompare(b.end||''));
+  const out = { periods, cells: {} };
+  periods.forEach(ep => { out.cells[ep.id] = {}; });
+  const att = state.attendance || {};
+  Object.keys(att).forEach(date => {
+    const ep = periods.find(x => (!x.start || x.start <= date) && (!x.end || date <= x.end));
+    if (!ep) return;
+    const byP = att[date] || {};
+    Object.keys(byP).forEach(p => {
+      const seats = (byP[p] || {})[subject];
+      if (!seats) return;
+      Object.entries(seats).forEach(([sn, st]) => {
+        if (!out.cells[ep.id][sn]) out.cells[ep.id][sn] = { absent:0, late:0, infirmary:0 };
+        if (st === 'absent') out.cells[ep.id][sn].absent++;
+        else if (st === 'late') out.cells[ep.id][sn].late++;
+        else if (st === 'infirmary') out.cells[ep.id][sn].infirmary++;
+      });
+    });
+  });
+  return out;
+}
+
+/* 閾値到達チェック: 新規到達した閾値 { level (0-2), threshold, message } を返す */
+function checkAbsenceThreshold(subject, newCount, oldCount) {
+  ensureAbsenceConfig();
+  const credits = (state.absenceConfig.credits || {})[subject];
+  if (!credits || credits <= 0) return null;
+  const muls = state.absenceConfig.multipliers || [4,6,7];
+  const msgs = state.absenceConfig.messages || [];
+  for (let i = muls.length - 1; i >= 0; i--) {
+    const th = credits * muls[i];
+    if (newCount >= th && oldCount < th) {
+      return { level: i, threshold: th, message: (msgs[i] || '欠席閾値に達しました') };
+    }
+  }
+  return null;
+}
+
+/* 欠席状態の循環 */
+function cycleAttendanceStatus(cur) {
+  if (!cur || cur === 'present') return 'absent';
+  if (cur === 'absent') return 'late';
+  if (cur === 'late') return 'infirmary';
+  return 'present';
+}
+
+/* 欠席状態の読み書き */
+function getAttStatus(date, period, subject, seatNo) {
+  const att = state.attendance || {};
+  return (((att[date] || {})[period] || {})[subject] || {})[seatNo] || 'present';
+}
+function setAttStatus(date, period, subject, seatNo, status) {
+  ensureAbsenceConfig();
+  if (!state.attendance[date]) state.attendance[date] = {};
+  if (!state.attendance[date][period]) state.attendance[date][period] = {};
+  if (!state.attendance[date][period][subject]) state.attendance[date][period][subject] = {};
+  if (status === 'present') {
+    delete state.attendance[date][period][subject][seatNo];
+    if (!Object.keys(state.attendance[date][period][subject]).length) delete state.attendance[date][period][subject];
+    if (!Object.keys(state.attendance[date][period]).length) delete state.attendance[date][period];
+    if (!Object.keys(state.attendance[date]).length) delete state.attendance[date];
+  } else {
+    state.attendance[date][period][subject][seatNo] = status;
+  }
+}
+
+/* ========== 記録ポップアップ内 欠席登録UI ========== */
+let _recAttendOpen = false;
+function openRecAttendPanel() {
+  const subject = ($('#recSubject').value || '').trim();
+  const date = $('#recDate').value;
+  const period = parseInt($('#recPeriod').value) || 0;
+  if (!subject) { toast('科目を選んでください'); return; }
+  if (!date || !period) { toast('日付・時限が指定されていません'); return; }
+  ensureAbsenceConfig();
+  $('#recAttendSubj').textContent = subject;
+  const panel = $('#recAttendPanel');
+  panel.style.display = '';
+  _recAttendOpen = true;
+  renderRecAttendGrid(date, period, subject);
+}
+function closeRecAttendPanel() {
+  const panel = $('#recAttendPanel');
+  if (panel) panel.style.display = 'none';
+  _recAttendOpen = false;
+}
+function renderRecAttendGrid(date, period, subject) {
+  const wrap = $('#recAttendGrid');
+  const cfg = (state.seatConfig || {})[subject];
+  if (!cfg || !cfg.start || !cfg.end || cfg.end < cfg.start) {
+    wrap.innerHTML = '<div class="att-reg-nocls">この授業の出席番号範囲が設定タブ「出欠席管理」で未登録です。</div>';
+    return;
+  }
+  let html = '';
+  for (let n = cfg.start; n <= cfg.end; n++) {
+    const st = getAttStatus(date, period, subject, n);
+    const cls = st === 'absent' ? 'st-absent' : st === 'late' ? 'st-late' : st === 'infirmary' ? 'st-infirmary' : '';
+    const label = st === 'absent' ? '欠' : st === 'late' ? '遅' : st === 'infirmary' ? '保' : '';
+    html += `<button type="button" class="att-reg-seat ${cls}" data-seat="${n}">${n}${label?('<br>'+label):''}</button>`;
+  }
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.att-reg-seat').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const seatNo = parseInt(btn.dataset.seat);
+      const cur = getAttStatus(date, period, subject, seatNo);
+      const next = cycleAttendanceStatus(cur);
+      const before = countAbsencesForSubject(subject);
+      setAttStatus(date, period, subject, seatNo, next);
+      save();
+      renderRecAttendGrid(date, period, subject);
+      /* 閾値到達チェック: この生徒の累計で判断 */
+      if (next === 'absent' || next === 'infirmary') {
+        const bySeat = countAbsencesForSubjectBySeat(subject);
+        const newCount = bySeat[seatNo] || 0;
+        /* 旧カウント = 新カウント - 1 の想定（この1回で増えた） */
+        const warn = checkAbsenceThreshold(subject, newCount, newCount - 1);
+        if (warn) {
+          alert(`【警告（レベル${warn.level+1}）】\n${subject} 出席番号${seatNo}: 欠席${newCount}回\n閾値=${warn.threshold}回\n\n${warn.message}`);
+        }
+      }
+    });
+  });
+}
+const _recAttBtn = $('#recAttendBtn');
+if (_recAttBtn) _recAttBtn.addEventListener('click', () => {
+  if (_recAttendOpen) closeRecAttendPanel();
+  else openRecAttendPanel();
+});
+/* ポップアップを開き直すとき＆閉じるときに欠席パネルも閉じる */
+const _origOpenRecordModal = openRecordModal;
+openRecordModal = function() {
+  closeRecAttendPanel();
+  _origOpenRecordModal();
+};
+const _origCloseRecordModal = closeRecordModal;
+closeRecordModal = function() {
+  closeRecAttendPanel();
+  _origCloseRecordModal();
+};
+
+/* ========== 出席簿タブ ========== */
+let _attendState = { subject: '', month: '' };
+function getAttendClassSubjects() {
+  /* 出席番号範囲が設定されているクラスを優先、設定なしは下に */
+  const all = gatherAllSubjects();
+  const cfg = state.seatConfig || {};
+  const configured = all.filter(s => cfg[s] && cfg[s].start && cfg[s].end);
+  const others = all.filter(s => !cfg[s] || !cfg[s].start || !cfg[s].end);
+  return [...configured, ...others];
+}
+function renderAttend() {
+  ensureAbsenceConfig();
+  const subjects = getAttendClassSubjects();
+  const sel = $('#attSubjectSel');
+  if (!sel) return;
+  sel.innerHTML = subjects.map(s => {
+    const cfg = (state.seatConfig || {})[s];
+    const configured = cfg && cfg.start && cfg.end;
+    return `<option value="${escapeHtml(s)}">${escapeHtml(s)}${configured?'':' (番号未設定)'}</option>`;
+  }).join('');
+  if (!_attendState.subject || !subjects.includes(_attendState.subject)) {
+    _attendState.subject = subjects[0] || '';
+  }
+  sel.value = _attendState.subject;
+  const mSel = $('#attMonthSel');
+  if (!_attendState.month) {
+    const t = new Date();
+    _attendState.month = t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0');
+  }
+  mSel.value = _attendState.month;
+  renderAttendGrid();
+  renderAttendWarnings();
+}
+function renderAttendGrid() {
+  const wrap = $('#attGridWrap');
+  const subject = _attendState.subject;
+  if (!subject) { wrap.innerHTML = '<div class="help">授業を選択してください。</div>'; return; }
+  const cfg = (state.seatConfig || {})[subject];
+  if (!cfg || !cfg.start || !cfg.end) {
+    wrap.innerHTML = '<div class="help">この授業の出席番号範囲が未設定です。設定タブ「出欠席管理」で登録してください。</div>';
+    return;
+  }
+  const [yStr, mStr] = (_attendState.month || '').split('-');
+  const y = parseInt(yStr), m = parseInt(mStr);
+  if (!y || !m) { wrap.innerHTML = '<div class="help">表示月を選択してください。</div>'; return; }
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const bySeat = countAbsencesForSubjectBySeat(subject);
+  let html = '<table class="att-grid"><thead><tr><th class="att-seat-head">席番</th>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(y, m-1, d);
+    const wd = (dt.getDay() + 6) % 7; /* 0=月..6=日 */
+    const wdCh = ['月','火','水','木','金','土','日'][wd];
+    html += `<th>${d}<br><span style="font-size:9px; color:${wd>=5?'#c62828':'#666'}">${wdCh}</span></th>`;
+  }
+  html += '<th class="att-seat-head">累計</th></tr></thead><tbody>';
+  for (let n = cfg.start; n <= cfg.end; n++) {
+    html += `<tr><td class="att-seat">${n}</td>`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const iso = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dt = new Date(y, m-1, d);
+      const wd = dt.getDay();
+      const holiday = isHolidayAny ? isHolidayAny(iso) : false;
+      const dayByP = (state.attendance || {})[iso] || {};
+      let st = '';
+      Object.keys(dayByP).forEach(p => {
+        const seats = (dayByP[p] || {})[subject];
+        if (seats && seats[n]) {
+          /* 同日複数コマは最も重い状態を表示: 欠席>遅刻>保健室 */
+          const cur = seats[n];
+          if (cur === 'absent') st = 'absent';
+          else if (cur === 'infirmary' && st !== 'absent') st = 'infirmary';
+          else if (cur === 'late' && !st) st = 'late';
+        }
+      });
+      let cls = '', ch = '';
+      if (st === 'absent') { cls = 'att-absent'; ch = '／'; }
+      else if (st === 'late') { cls = 'att-late'; ch = '×'; }
+      else if (st === 'infirmary') { cls = 'att-infirmary'; ch = '保'; }
+      else if (holiday) cls = 'att-holiday';
+      else if (wd === 0 || wd === 6) cls = 'att-weekend';
+      html += `<td class="${cls}">${ch}</td>`;
+    }
+    html += `<td class="att-total">${bySeat[n] || 0}</td></tr>`;
+  }
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+function renderAttendWarnings() {
+  const subject = _attendState.subject;
+  const wrap = $('#attWarnings');
+  if (!subject || !wrap) { if (wrap) wrap.innerHTML = ''; return; }
+  ensureAbsenceConfig();
+  const credits = (state.absenceConfig.credits || {})[subject];
+  const muls = state.absenceConfig.multipliers || [4,6,7];
+  const msgs = state.absenceConfig.messages || [];
+  if (!credits) { wrap.innerHTML = '<div class="help">単位数未設定（警告なし）</div>'; return; }
+  const bySeat = countAbsencesForSubjectBySeat(subject);
+  const thresholds = muls.map(x => credits * x);
+  const items = [];
+  Object.entries(bySeat).forEach(([sn, cnt]) => {
+    let lv = -1;
+    for (let i = thresholds.length - 1; i >= 0; i--) {
+      if (cnt >= thresholds[i]) { lv = i; break; }
+    }
+    if (lv >= 0) items.push({ seat: sn, count: cnt, lv });
+  });
+  items.sort((a,b) => b.lv - a.lv || b.count - a.count || parseInt(a.seat) - parseInt(b.seat));
+  if (!items.length) {
+    wrap.innerHTML = `<div class="help">閾値: ${thresholds.join(', ')}回 — 現在該当なし。</div>`;
+    return;
+  }
+  wrap.innerHTML = items.map(it =>
+    `<div class="att-warn-item att-warn-lv${it.lv+1}"><strong>席番${it.seat}（${it.count}回）</strong>: ${escapeHtml(msgs[it.lv]||'')}</div>`
+  ).join('');
+}
+
+/* 出席簿 セレクタ・イベント */
+(function bindAttend() {
+  const sSel = $('#attSubjectSel');
+  if (sSel) sSel.addEventListener('change', () => {
+    _attendState.subject = sSel.value;
+    renderAttendGrid();
+    renderAttendWarnings();
+  });
+  const mSel = $('#attMonthSel');
+  if (mSel) mSel.addEventListener('change', () => {
+    _attendState.month = mSel.value;
+    renderAttendGrid();
+  });
+  const expBtn = $('#attExport');
+  if (expBtn) expBtn.addEventListener('click', exportAttendanceCSV);
+})();
+
+/* ========== 欠席データCSV出力 ========== */
+function exportAttendanceCSV() {
+  ensureAbsenceConfig();
+  const periods = (state.examPeriods || []).slice()
+    .sort((a,b) => (a.end||'').localeCompare(b.end||''));
+  const subjects = getAttendClassSubjects().filter(s => {
+    const cfg = (state.seatConfig || {})[s];
+    return cfg && cfg.start && cfg.end;
+  });
+  if (!subjects.length) { toast('出席番号が設定された授業がありません'); return; }
+  let csv = '﻿'; /* BOM */
+  const periodHeaders = periods.map(ep => (ep.name || '考査') + '(欠席)').join(',');
+  subjects.forEach(subject => {
+    csv += `授業: ${subject}\n`;
+    csv += `出席番号,${periodHeaders}${periodHeaders?',':''}累計欠席\n`;
+    const cfg = state.seatConfig[subject];
+    const tally = tallyAttendanceByExam(subject);
+    const bySeat = countAbsencesForSubjectBySeat(subject);
+    for (let n = cfg.start; n <= cfg.end; n++) {
+      const row = [n];
+      periods.forEach(ep => {
+        const cell = (tally.cells[ep.id] || {})[n];
+        /* 保健室は欠席にカウント */
+        const v = cell ? (cell.absent + cell.infirmary) : 0;
+        row.push(v);
+      });
+      row.push(bySeat[n] || 0);
+      csv += row.join(',') + '\n';
+    }
+    csv += '\n';
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `attendance_${todayStr()}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('CSVを保存しました');
+}
+
+/* ========== 設定: 出欠席管理（座席範囲＋単位数＋警告） ========== */
+function renderAbsenceSettings() {
+  ensureAbsenceConfig();
+  const cfg = state.absenceConfig;
+  const muls = cfg.multipliers || [4,6,7];
+  const msgs = cfg.messages || [];
+  ['absMul1','absMul2','absMul3'].forEach((id, i) => {
+    const el = $('#' + id); if (el) el.value = muls[i] || '';
+  });
+  ['absMsg1','absMsg2','absMsg3'].forEach((id, i) => {
+    const el = $('#' + id); if (el) el.value = msgs[i] || '';
+  });
+  const tbl = $('#absGrid');
+  if (!tbl) return;
+  const subjects = gatherAllSubjects();
+  const seats = state.seatConfig || {};
+  const credits = cfg.credits || {};
+  let html = '<thead><tr><th>授業</th><th>出席番号 開始</th><th>出席番号 終了</th><th>単位数</th><th>閾値</th></tr></thead><tbody>';
+  if (!subjects.length) {
+    html += '<tr><td colspan="5" style="color:var(--muted); font-style:italic;">科目マスタに授業が登録されていません。</td></tr>';
+  } else {
+    subjects.forEach(s => {
+      const sc = seats[s] || {};
+      const cr = credits[s] || '';
+      const thrs = cr ? muls.map(x => x * cr).join(' / ') : '—';
+      html += `<tr>
+        <td>${escapeHtml(s)}</td>
+        <td><input type="number" min="1" class="abs-start" data-s="${escapeHtml(s)}" value="${sc.start||''}"></td>
+        <td><input type="number" min="1" class="abs-end" data-s="${escapeHtml(s)}" value="${sc.end||''}"></td>
+        <td><input type="number" min="0" step="0.5" class="abs-credit" data-s="${escapeHtml(s)}" value="${cr}"></td>
+        <td style="color:var(--muted); font-size:12px;">${thrs}</td>
+      </tr>`;
+    });
+  }
+  html += '</tbody>';
+  tbl.innerHTML = html;
+  tbl.querySelectorAll('.abs-start, .abs-end, .abs-credit').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const sInd = $('#absDirtyInd'); if (sInd) sInd.style.display = 'inline-block';
+    });
+  });
+  ['absMul1','absMul2','absMul3','absMsg1','absMsg2','absMsg3'].forEach(id => {
+    const el = $('#' + id);
+    if (el) el.addEventListener('input', () => {
+      const sInd = $('#absDirtyInd'); if (sInd) sInd.style.display = 'inline-block';
+    });
+  });
+}
+function saveAbsenceSettings() {
+  ensureAbsenceConfig();
+  const seats = {};
+  $$('#absGrid .abs-start').forEach(inp => {
+    const s = inp.dataset.s;
+    const start = parseInt(inp.value) || 0;
+    if (!seats[s]) seats[s] = {};
+    seats[s].start = start;
+  });
+  $$('#absGrid .abs-end').forEach(inp => {
+    const s = inp.dataset.s;
+    const end = parseInt(inp.value) || 0;
+    if (!seats[s]) seats[s] = {};
+    seats[s].end = end;
+  });
+  const credits = {};
+  $$('#absGrid .abs-credit').forEach(inp => {
+    const s = inp.dataset.s;
+    const v = parseFloat(inp.value);
+    if (!isNaN(v) && v > 0) credits[s] = v;
+  });
+  const cleanSeats = {};
+  Object.entries(seats).forEach(([s, v]) => {
+    if (v.start && v.end && v.end >= v.start) cleanSeats[s] = v;
+  });
+  const muls = [1,2,3].map(i => parseInt($('#absMul'+i).value) || 0);
+  const msgs = [1,2,3].map(i => ($('#absMsg'+i).value || '').trim());
+  state.seatConfig = cleanSeats;
+  state.absenceConfig = {
+    credits,
+    multipliers: muls.every(x => x > 0) ? muls : [4,6,7],
+    messages: msgs
+  };
+  save();
+  const sInd = $('#absDirtyInd'); if (sInd) sInd.style.display = 'none';
+  toast('出欠席管理を保存しました');
+  renderAbsenceSettings();
+}
+(function bindAbs() {
+  const b = $('#absSaveBtn'); if (b) b.addEventListener('click', saveAbsenceSettings);
+  const c = $('#absCancelBtn'); if (c) c.addEventListener('click', () => { renderAbsenceSettings(); toast('変更を破棄しました'); });
+  const r = $('#absRefresh'); if (r) r.addEventListener('click', () => { renderAbsenceSettings(); toast('一覧を更新しました'); });
+})();
+
+/* renderSettings に出欠席管理を組み込む */
+const _origRenderSettings = renderSettings;
+renderSettings = function() {
+  _origRenderSettings.apply(this, arguments);
+  try { renderAbsenceSettings(); } catch(e) { console.error(e); }
+};
+
+/* ========== #1-2 月間カレンダー配置整理（DPOリスト折りたたみ＋DPOフォーム移動） ========== */
+(function reorgCalendarSettings() {
+  /* 既存の #dpoList 要素と day-detail-tools (DPOフォーム) の位置を変更 */
+  const calGrid = document.getElementById('calGrid');
+  const dpoDetail = document.querySelector('.day-detail-tools');
+  const dpoList = document.getElementById('dpoList');
+  if (!calGrid || !dpoDetail || !dpoList) return;
+
+  /* dpoList を折りたたみ構造に置き換える（calGrid の上に配置） */
+  const toggle = document.createElement('div');
+  toggle.className = 'dpo-list-toggle';
+  toggle.innerHTML = `
+    <button class="btn secondary small" type="button" id="dpoListToggleBtn">設定済みの日替わり時間割</button>
+    <select id="dpoListMonthSel" style="display:none; height:32px; border:1px solid var(--line); border-radius:6px; padding:2px 6px; font-size:14px;"></select>
+  `;
+  const collapse = document.createElement('div');
+  collapse.id = 'dpoListCollapse';
+  collapse.className = 'dpo-list-collapse';
+  collapse.appendChild(dpoList); /* 既存の dpoList を内包 */
+
+  /* DPOフォームを月間カレンダー(calGrid)の下に移動 */
+  calGrid.parentNode.insertBefore(dpoDetail, calGrid.nextSibling);
+  /* トグルボタン＋折りたたみリストは DPO フォームの下に配置 */
+  dpoDetail.appendChild(toggle);
+  dpoDetail.appendChild(collapse);
+
+  /* トグル挙動 */
+  let _opened = false;
+  const btn = toggle.querySelector('#dpoListToggleBtn');
+  const monthSel = toggle.querySelector('#dpoListMonthSel');
+  function populateMonths() {
+    const overrides = state.dayPatternOverrides || {};
+    const months = new Set();
+    Object.keys(overrides).forEach(iso => {
+      if (/^\d{4}-\d{2}/.test(iso)) months.add(iso.substring(0, 7));
+    });
+    const arr = Array.from(months).sort();
+    if (!arr.length) {
+      monthSel.innerHTML = '<option value="">（設定なし）</option>';
+      return;
+    }
+    monthSel.innerHTML = '<option value="all">すべて</option>' +
+      arr.map(m => `<option value="${m}">${m}</option>`).join('');
+  }
+  function applyFilter() {
+    const sel = monthSel.value;
+    collapse.querySelectorAll('.dpo-list-item').forEach(item => {
+      const iso = item.querySelector('.dpo-iso') ? item.querySelector('.dpo-iso').textContent.trim() : '';
+      if (!sel || sel === 'all') item.style.display = '';
+      else item.style.display = iso.startsWith(sel) ? '' : 'none';
+    });
+  }
+  btn.addEventListener('click', () => {
+    _opened = !_opened;
+    if (_opened) {
+      populateMonths();
+      monthSel.style.display = '';
+      collapse.classList.add('show');
+      btn.textContent = '設定済みの日替わり時間割（閉じる）';
+      applyFilter();
+    } else {
+      monthSel.style.display = 'none';
+      collapse.classList.remove('show');
+      btn.textContent = '設定済みの日替わり時間割';
+    }
+  });
+  monthSel.addEventListener('change', applyFilter);
+
+  /* renderDpoList が呼ばれた後にも monthSel を更新 */
+  if (typeof renderDpoList === 'function') {
+    const _origRenderDpoList = renderDpoList;
+    window.renderDpoList = function() {
+      _origRenderDpoList.apply(this, arguments);
+      if (_opened) { populateMonths(); applyFilter(); }
+    };
+  }
+})();
+
 renderTimetableEditor('A');
 renderTimetableEditor('B');
 newRecord();
@@ -5589,56 +6287,6 @@ updateTodoBadge();
 
 /* 保存状態インジケータを30秒ごとに更新（経過時間を再計算） */
 setInterval(updateHeaderStatus, 30 * 1000);
-
-/* ========== iPad: 保存（ダウンロード）や読込の画面から戻ったあと上部がぼける不具合の対策 ==========
-   iOS/iPadOS では、ダウンロードのプレビューやファイル選択の画面から戻ると、
-   画面の上端の位置（ステータスバー・ツールバーとの境目）がずれたままになることがある。
-   アプリを開き直すと直るのと同じ状態に戻すため、戻ってきた時点で表示を計算し直させる。 */
-function repairIOSViewport() {
-  if (!_isIOSDevice) return;
-  /* 1) viewport 設定を書き直して、Safari に画面サイズと余白を測り直させる */
-  const vp = document.querySelector('meta[name="viewport"]');
-  if (vp) {
-    const c = vp.getAttribute('content');
-    vp.setAttribute('content', c + ' ');
-    requestAnimationFrame(() => vp.setAttribute('content', c));
-  }
-  /* 2) レイアウトを強制的に計算し直す */
-  const html = document.documentElement;
-  html.style.transform = 'translateZ(0)';
-  void html.offsetHeight;
-  html.style.transform = '';
-  /* 3) スクロール位置を一度動かして戻す（ずれた表示位置をリセット） */
-  const y = window.scrollY;
-  window.scrollTo(0, y + 1);
-  window.scrollTo(0, y);
-}
-/* 少し間をおいて数回実行（戻るアニメーションが終わってから効かせるため） */
-function scheduleViewportRepair() {
-  [0, 150, 500, 1200].forEach(ms => setTimeout(repairIOSViewport, ms));
-}
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') scheduleViewportRepair();
-});
-window.addEventListener('pageshow', scheduleViewportRepair);
-window.addEventListener('focus', scheduleViewportRepair);
-if (window.visualViewport) {
-  /* プレビューを閉じたときなどに表示領域の大きさが変わったら実行 */
-  let _vvTimer = null;
-  window.visualViewport.addEventListener('resize', () => {
-    clearTimeout(_vvTimer);
-    _vvTimer = setTimeout(repairIOSViewport, 200);
-  });
-}
-/* 保存・読込ボタンを押した直後と、ファイルを選んだ後にも実行 */
-['#headerExportBtn', '#btnExport', '#headerImportBtn', '#btnImport'].forEach(sel => {
-  const b = $(sel);
-  if (b) b.addEventListener('click', () => {
-    scheduleViewportRepair();
-    setTimeout(scheduleViewportRepair, 2000);
-  });
-});
-$('#fileInput').addEventListener('change', scheduleViewportRepair);
 
 /* タブを閉じる/離脱しようとしたとき、未保存の編集があれば確認ダイアログ */
 window.addEventListener('beforeunload', (e) => {
