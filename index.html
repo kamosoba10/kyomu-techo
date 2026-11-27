@@ -86,7 +86,7 @@
   /* iPad/iPhone のホームインジケータ・ノッチ対応（PWAホーム画面起動時に重要） */
   body { padding-bottom: env(safe-area-inset-bottom); }
   header {
-    padding-top: calc(14px + env(safe-area-inset-top));
+    padding-top: calc(8px + env(safe-area-inset-top));
     padding-left: calc(16px + env(safe-area-inset-left));
     padding-right: calc(16px + env(safe-area-inset-right));
   }
@@ -113,7 +113,7 @@
   header {
     background: var(--accent);
     color: #fff;
-    padding: 14px 16px;
+    padding: 8px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -121,8 +121,7 @@
     gap: 14px;
     font-size: 13px;
     line-height: 1.2;
-    min-height: 54px;
-    position: sticky; top: 0; z-index: 500;
+    min-height: 40px;
   }
   header h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.04em; }
   header .h-meta {
