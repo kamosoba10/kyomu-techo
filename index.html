@@ -4,8 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#1f1f1f">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="教務手帳">
 <meta name="format-detection" content="telephone=no">
 <title>教務手帳</title>
@@ -36,14 +35,6 @@
     -webkit-text-size-adjust: 100%;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
-  }
-  /* 上下のラバーバンドで背景がぼやけるのを防ぐための固定カラー背景 */
-  body::before {
-    content: ''; position: fixed;
-    top: 0; left: 0; right: 0;
-    height: env(safe-area-inset-top);
-    background: var(--accent);
-    z-index: 10000; pointer-events: none;
   }
   /* iPad/iPhone: form 要素は font-size 16px 以上だと iOS Safari の自動ズームを抑止できる */
   input, select, textarea, button {
