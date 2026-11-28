@@ -343,14 +343,17 @@
     border: 1px solid #c62828; color: #c62828;
     background: #fff; border-radius: 6px; cursor: pointer;
   }
-  /* 出席簿 閾値表 */
-  .att-thresh-wrap { margin: 10px 0; }
-  .att-thresh-grid { border-collapse: collapse; font-size: 13px; }
-  .att-thresh-grid th, .att-thresh-grid td {
-    border: 1px solid var(--line); padding: 6px 10px; text-align: center;
+  /* 出席簿 閾値 コンパクト表示 */
+  .att-thresh-wrap { margin: 6px 0 4px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; }
+  .att-thresh-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 12px;
+    background: #f4f4f4; border: 1px solid var(--line);
+    white-space: nowrap;
   }
-  .att-thresh-grid th { background: #f4f4f4; font-weight: 600; }
-  .att-thresh-grid td.att-th-guide { text-align: left; min-width: 180px; }
+  .att-thresh-chip .tc-n { color: #c62828; font-weight: 700; }
+  .att-thresh-chip .tc-th { color: var(--ink); font-weight: 600; }
+  .att-thresh-chip .tc-g { color: var(--muted); }
   /* 警告 対応済セクション */
   .att-warn-resolved-head {
     font-size: 12px; color: var(--muted); margin: 8px 0 4px;
@@ -2090,6 +2093,7 @@
       <div id="attThreshWrap" class="att-thresh-wrap"></div>
       <div id="attWarnings" class="att-warnings" style="margin-top:8px;"></div>
       <div id="attGridWrap" class="att-grid-wrap" style="margin-top:10px; overflow-x:auto;"></div>
+      <div id="attResolvedWrap" class="att-warnings" style="margin-top:10px;"></div>
       <div class="help" style="margin-top:8px;">
         グリッドセル: ／＝欠席 ×＝遅刻 保＝保健室（空＝出席）。右端は欠席累計（保健室を含む）。<br>
         CSV出力は考査期間ごとの小計と累計を、クラスごとに出席番号順で出します。Excelで開けます。
@@ -6001,17 +6005,17 @@ function tallyAttendanceByExam(subject) {
   return out;
 }
 
-/* 閾値到達チェック: 新規到達した閾値 { level (0-2), threshold, message } を返す */
+/* 閾値到達チェック: 新規到達した閾値 { level, threshold, message } を返す */
 function checkAbsenceThreshold(subject, newCount, oldCount) {
   ensureAbsenceConfig();
   const credits = (state.absenceConfig.credits || {})[subject];
   if (!credits || credits <= 0) return null;
   const muls = state.absenceConfig.multipliers || [4,6,7];
-  const msgs = state.absenceConfig.messages || [];
+  const gds = state.absenceConfig.guidances || [];
   for (let i = muls.length - 1; i >= 0; i--) {
     const th = credits * muls[i];
     if (newCount >= th && oldCount < th) {
-      return { level: i, threshold: th, message: (msgs[i] || '欠席閾値に達しました') };
+      return { level: i, threshold: th, message: buildWarningMessage(muls[i], gds[i]||'') };
     }
   }
   return null;
@@ -6309,11 +6313,17 @@ function renderAttendGrid() {
 }
 function resolvedKey(subject, seat, lv, th) { return `${subject}|${seat}|${lv}|${th}`; }
 
+/* 警告メッセージを自動生成 */
+function buildWarningMessage(mul, guidance) {
+  const g = guidance ? `（${guidance}）` : '';
+  return `欠席が単位数×${mul}${g}に達しました。`;
+}
+
 function computeWarningItems(subject) {
   ensureAbsenceConfig();
   const credits = (state.absenceConfig.credits || {})[subject];
   const muls = state.absenceConfig.multipliers || [];
-  const msgs = state.absenceConfig.messages || [];
+  const gds = state.absenceConfig.guidances || [];
   if (!credits || !muls.length) return { items: [], thresholds: [] };
   const range = getTermDateRange(_attendState.term || '');
   const until = range.end || null;
@@ -6328,7 +6338,11 @@ function computeWarningItems(subject) {
     if (lv >= 0) {
       const th = thresholds[lv];
       const resolved = !!(state.resolvedWarnings || {})[resolvedKey(subject, sn, lv, th)];
-      items.push({ seat: sn, count: cnt, lv, threshold: th, message: msgs[lv]||'', resolved });
+      items.push({
+        seat: sn, count: cnt, lv, threshold: th,
+        message: buildWarningMessage(muls[lv], gds[lv]||''),
+        resolved
+      });
     }
   });
   items.sort((a,b) => (a.resolved - b.resolved) || b.lv - a.lv || b.count - a.count || parseInt(a.seat) - parseInt(b.seat));
@@ -6338,16 +6352,17 @@ function computeWarningItems(subject) {
 function renderAttendWarnings() {
   const subject = _attendState.subject;
   const wrap = $('#attWarnings');
-  if (!subject || !wrap) { if (wrap) wrap.innerHTML = ''; return; }
+  const rWrap = $('#attResolvedWrap');
+  if (!subject || !wrap) { if (wrap) wrap.innerHTML = ''; if (rWrap) rWrap.innerHTML = ''; return; }
   ensureAbsenceConfig();
   const credits = (state.absenceConfig.credits || {})[subject];
-  if (!credits) { wrap.innerHTML = '<div class="help">単位数未設定（警告なし）</div>'; updateAttendBadge(); return; }
-  const { items, thresholds } = computeWarningItems(subject);
-  if (!items.length) {
-    wrap.innerHTML = `<div class="help">閾値: ${thresholds.join(', ')}回 — 現在該当なし。</div>`;
+  if (!credits) {
+    wrap.innerHTML = '<div class="help">単位数未設定（警告なし）</div>';
+    if (rWrap) rWrap.innerHTML = '';
     updateAttendBadge();
     return;
   }
+  const { items, thresholds } = computeWarningItems(subject);
   const active = items.filter(it => !it.resolved);
   const resolvedList = items.filter(it => it.resolved);
   const renderItem = it => {
@@ -6359,13 +6374,22 @@ function renderAttendWarnings() {
       </label>
     </div>`;
   };
-  let html = active.map(renderItem).join('');
-  if (resolvedList.length) {
-    html += `<div class="att-warn-resolved-head">対応済みの警告 (${resolvedList.length})</div>`;
-    html += resolvedList.map(renderItem).join('');
+  if (!items.length) {
+    wrap.innerHTML = `<div class="help">閾値到達の警告はありません。</div>`;
+  } else if (!active.length) {
+    wrap.innerHTML = `<div class="help">未対応の警告はありません（対応済みは一覧表の下に表示）。</div>`;
+  } else {
+    wrap.innerHTML = active.map(renderItem).join('');
   }
-  wrap.innerHTML = html;
-  wrap.querySelectorAll('.att-warn-chk').forEach(chk => {
+  if (rWrap) {
+    if (resolvedList.length) {
+      rWrap.innerHTML = `<div class="att-warn-resolved-head">対応済みの警告 (${resolvedList.length})</div>`
+        + resolvedList.map(renderItem).join('');
+    } else {
+      rWrap.innerHTML = '';
+    }
+  }
+  const bindChk = root => root && root.querySelectorAll('.att-warn-chk').forEach(chk => {
     chk.addEventListener('change', () => {
       const k = chk.dataset.k;
       if (!state.resolvedWarnings) state.resolvedWarnings = {};
@@ -6375,6 +6399,7 @@ function renderAttendWarnings() {
       renderAttendWarnings();
     });
   });
+  bindChk(wrap); bindChk(rWrap);
   updateAttendBadge();
 }
 
@@ -6388,14 +6413,14 @@ function renderAttendThresh() {
   const credits = (cfg.credits || {})[subject];
   if (!subject) { wrap.innerHTML = ''; return; }
   if (!credits) {
-    wrap.innerHTML = `<div class="help">「${escapeHtml(subject)}」の単位数が未設定です（設定タブ「出欠席管理」で登録してください）。</div>`;
+    wrap.innerHTML = `<div class="help" style="margin:0;">「${escapeHtml(subject)}」の単位数が未設定です（設定タブ「出欠席管理」で登録してください）。</div>`;
     return;
   }
-  let html = '<table class="att-thresh-grid"><thead><tr><th>×N</th><th>閾値（回）</th><th>指導内容</th></tr></thead><tbody>';
+  let html = `<span style="color:var(--muted); font-weight:600;">閾値:</span>`;
   cfg.multipliers.forEach((n, i) => {
-    html += `<tr><td>${n}</td><td>${credits * n}</td><td class="att-th-guide">${escapeHtml(cfg.guidances[i]||'')}</td></tr>`;
+    const g = cfg.guidances[i] || '';
+    html += `<span class="att-thresh-chip"><span class="tc-n">×${n}</span><span class="tc-th">${credits * n}回</span>${g?`<span class="tc-g">→ ${escapeHtml(g)}</span>`:''}</span>`;
   });
-  html += '</tbody></table>';
   wrap.innerHTML = html;
 }
 
@@ -6700,22 +6725,21 @@ function renderAbsenceLevels() {
   const cfg = state.absenceConfig;
   const tbl = $('#absLevelsGrid');
   if (!tbl) return;
-  let html = '<thead><tr><th style="width:80px;">×N</th><th>指導内容</th><th>警告メッセージ</th><th style="width:60px;">削除</th></tr></thead><tbody>';
+  let html = '<thead><tr><th style="width:80px;">×N</th><th>指導内容</th><th style="width:60px;">削除</th></tr></thead><tbody>';
   cfg.multipliers.forEach((m, i) => {
     html += `<tr data-i="${i}">
       <td><input type="number" min="1" class="abs-lv-mul" data-i="${i}" value="${m}"></td>
-      <td><input type="text" class="abs-lv-guide" data-i="${i}" value="${escapeHtml(cfg.guidances[i]||'')}" placeholder="例: 担任と面談"></td>
-      <td><input type="text" class="abs-lv-msg" data-i="${i}" value="${escapeHtml(cfg.messages[i]||'')}"></td>
+      <td><input type="text" class="abs-lv-guide" data-i="${i}" value="${escapeHtml(cfg.guidances[i]||'')}" placeholder="教務主任指導"></td>
       <td style="text-align:center;"><button type="button" class="abs-lv-del" data-i="${i}">×</button></td>
     </tr>`;
   });
   if (!cfg.multipliers.length) {
-    html += '<tr><td colspan="4" style="color:var(--muted); font-style:italic;">レベル未登録。「+ レベルを追加」で作成してください。</td></tr>';
+    html += '<tr><td colspan="3" style="color:var(--muted); font-style:italic;">レベル未登録。「+ レベルを追加」で作成してください。</td></tr>';
   }
   html += '</tbody>';
   tbl.innerHTML = html;
   const mark = () => { const ind = $('#absDirtyInd'); if (ind) ind.style.display = 'inline-block'; };
-  tbl.querySelectorAll('.abs-lv-mul, .abs-lv-guide, .abs-lv-msg').forEach(inp => {
+  tbl.querySelectorAll('.abs-lv-mul, .abs-lv-guide').forEach(inp => {
     inp.addEventListener('input', mark);
   });
   tbl.querySelectorAll('.abs-lv-del').forEach(b => b.addEventListener('click', () => {
@@ -6790,30 +6814,27 @@ function saveAbsenceSettings() {
     if (v.start && v.end && v.end >= v.start) cleanSeats[s] = v;
   });
   /* レベル表から値を収集 */
-  const muls = [], msgs = [], gds = [];
+  const muls = [], gds = [];
   $$('#absLevelsGrid tbody tr').forEach(tr => {
     const i = tr.dataset.i;
     if (i == null) return;
     const mulInp = tr.querySelector('.abs-lv-mul');
-    const msgInp = tr.querySelector('.abs-lv-msg');
     const gdInp = tr.querySelector('.abs-lv-guide');
     if (!mulInp) return;
     const m = parseInt(mulInp.value) || 0;
     if (m <= 0) return;
     muls.push(m);
-    msgs.push((msgInp && msgInp.value || '').trim());
     gds.push((gdInp && gdInp.value || '').trim());
   });
-  /* ×N 昇順に並び替え（指導/メッセージも追従） */
+  /* ×N 昇順に並び替え */
   const idx = muls.map((_, i) => i).sort((a,b) => muls[a] - muls[b]);
   const sMuls = idx.map(i => muls[i]);
-  const sMsgs = idx.map(i => msgs[i]);
   const sGds = idx.map(i => gds[i]);
   state.seatConfig = cleanSeats;
   state.absenceConfig = {
     credits,
     multipliers: sMuls.length ? sMuls : [4,6,7],
-    messages: sMsgs.length ? sMsgs : ['','',''],
+    messages: sMuls.length ? sMuls.map(() => '') : ['','',''],
     guidances: sGds.length ? sGds : ['','','']
   };
   save();
