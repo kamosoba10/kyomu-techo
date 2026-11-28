@@ -86,7 +86,7 @@
   /* iPad/iPhone のホームインジケータ・ノッチ対応（PWAホーム画面起動時に重要） */
   body { padding-bottom: env(safe-area-inset-bottom); }
   header {
-    padding-top: calc(10px + env(safe-area-inset-top));
+    padding-top: calc(14px + env(safe-area-inset-top));
     padding-left: calc(16px + env(safe-area-inset-left));
     padding-right: calc(16px + env(safe-area-inset-right));
   }
@@ -113,7 +113,7 @@
   header {
     background: var(--accent);
     color: #fff;
-    padding: 10px 16px;
+    padding: 14px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -121,7 +121,7 @@
     gap: 14px;
     font-size: 13px;
     line-height: 1.2;
-    min-height: 48px;
+    min-height: 54px;
   }
   header h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.04em; }
   header .h-meta {
@@ -322,6 +322,50 @@
     border-radius: 6px; padding: 2px 6px;
     font-size: 14px;
   }
+  .abs-levels-grid { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .abs-levels-grid th, .abs-levels-grid td {
+    border: 1px solid var(--line);
+    padding: 6px; font-size: 13px; vertical-align: middle;
+  }
+  .abs-levels-grid th { background: #f4f4f4; font-weight: 600; text-align: left; }
+  .abs-levels-grid input[type="number"] {
+    width: 64px; height: 32px;
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 2px 6px; font-size: 14px;
+  }
+  .abs-levels-grid input[type="text"] {
+    width: 100%; height: 32px;
+    border: 1px solid var(--line); border-radius: 6px;
+    padding: 2px 6px; font-size: 14px;
+  }
+  .abs-levels-grid .abs-lv-del {
+    min-width: 36px; height: 32px;
+    border: 1px solid #c62828; color: #c62828;
+    background: #fff; border-radius: 6px; cursor: pointer;
+  }
+  /* 出席簿 閾値表 */
+  .att-thresh-wrap { margin: 10px 0; }
+  .att-thresh-grid { border-collapse: collapse; font-size: 13px; }
+  .att-thresh-grid th, .att-thresh-grid td {
+    border: 1px solid var(--line); padding: 6px 10px; text-align: center;
+  }
+  .att-thresh-grid th { background: #f4f4f4; font-weight: 600; }
+  .att-thresh-grid td.att-th-guide { text-align: left; min-width: 180px; }
+  /* 警告 対応済セクション */
+  .att-warn-resolved-head {
+    font-size: 12px; color: var(--muted); margin: 8px 0 4px;
+    font-weight: 600; border-top: 1px dashed var(--line); padding-top: 6px;
+  }
+  .att-warn-item.resolved { opacity: 0.5; text-decoration: line-through; }
+  .att-warn-item label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+  .att-warn-item input[type="checkbox"] { margin-top: 2px; transform: scale(1.2); }
+  /* 出席簿タブバッジ */
+  nav.tabs button .att-badge {
+    background: #c62828; color: #fff;
+    border-radius: 10px; padding: 1px 7px;
+    font-size: 11px; font-weight: 600;
+    margin-left: 6px;
+  }
 
   /* 出席簿グリッド */
   .att-grid-wrap table.att-grid {
@@ -409,7 +453,7 @@
     gap: 6px;
   }
   .att-reg-seat {
-    min-height: 40px;
+    height: 52px; min-height: 52px; max-height: 52px;
     border: 1px solid var(--line);
     border-radius: 6px;
     background: #fff;
@@ -417,11 +461,16 @@
     font-weight: 600;
     cursor: pointer;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 4px;
+    padding: 2px;
+    line-height: 1.1;
+    overflow: hidden;
     touch-action: manipulation;
   }
+  .att-reg-seat .seat-num { font-size: 15px; }
+  .att-reg-seat .seat-lbl { font-size: 11px; }
   .att-reg-seat.st-absent { background: #ffebee; color: #c62828; border-color: #ef9a9a; }
   .att-reg-seat.st-late { background: #fff3e0; color: #ef6c00; border-color: #ffb74d; }
   .att-reg-seat.st-infirmary { background: #f3e5f5; color: #6a1b9a; border-color: #ce93d8; }
@@ -1778,7 +1827,7 @@
   <button data-tab="progress">授業進度</button>
   <button data-tab="todos">todo <span class="badge" id="todoBadge" style="display:none;">0</span></button>
   <button data-tab="docs">資料</button>
-  <button data-tab="attend">出席簿</button>
+  <button data-tab="attend">出席簿 <span class="att-badge" id="attendBadge" style="display:none;">0</span></button>
   <button data-tab="settings">設定</button>
 </nav>
 
@@ -2038,6 +2087,7 @@
           <button class="btn secondary small" id="attExport">欠席データをCSV出力</button>
         </div>
       </div>
+      <div id="attThreshWrap" class="att-thresh-wrap"></div>
       <div id="attWarnings" class="att-warnings" style="margin-top:8px;"></div>
       <div id="attGridWrap" class="att-grid-wrap" style="margin-top:10px; overflow-x:auto;"></div>
       <div class="help" style="margin-top:8px;">
@@ -2216,28 +2266,10 @@
       <div class="help" style="margin-bottom:10px;">
         各授業の<strong>出席番号の範囲</strong>、<strong>単位数</strong>、警告閾値を設定できます。警告は「単位数 × ×N」で計算され、閾値到達時に出席簿や週間カレンダーからの欠席登録時にポップアップで通知します。
       </div>
-      <h3 style="font-size:14px; margin:12px 0 6px;">共通設定（×Nと警告メッセージ）</h3>
-      <div class="settings-row">
-        <div class="field">
-          <label>×N（レベル1）</label>
-          <input type="number" min="1" id="absMul1" style="width:70px;">
-        </div>
-        <div class="field">
-          <label>×N（レベル2）</label>
-          <input type="number" min="1" id="absMul2" style="width:70px;">
-        </div>
-        <div class="field">
-          <label>×N（レベル3）</label>
-          <input type="number" min="1" id="absMul3" style="width:70px;">
-        </div>
-      </div>
-      <div class="settings-row" style="flex-direction:column; align-items:stretch; gap:6px; margin-top:6px;">
-        <div class="field"><label>警告メッセージ（レベル1）</label>
-          <input type="text" id="absMsg1"></div>
-        <div class="field"><label>警告メッセージ（レベル2）</label>
-          <input type="text" id="absMsg2"></div>
-        <div class="field"><label>警告メッセージ（レベル3）</label>
-          <input type="text" id="absMsg3"></div>
+      <h3 style="font-size:14px; margin:12px 0 6px;">警告レベル（×N・指導内容・警告メッセージ）</h3>
+      <table class="abs-levels-grid" id="absLevelsGrid"></table>
+      <div class="btn-row" style="margin-top:6px;">
+        <button type="button" class="btn secondary small" id="absLevelAdd">+ レベルを追加</button>
       </div>
       <h3 style="font-size:14px; margin:14px 0 6px;">授業ごとの設定（出席番号範囲・単位数）</h3>
       <table class="abs-grid" id="absGrid"></table>
@@ -2401,6 +2433,12 @@
           <select id="attAddExamId">
             <option value="">（通常の授業日）</option>
           </select>
+        </div>
+      </div>
+      <div class="form-row one" id="attAddCustomRow" style="display:none;">
+        <div class="field">
+          <label>考査名（手入力）</label>
+          <input type="text" id="attAddCustomExam" placeholder="例: 小テスト / 校内模試 など">
         </div>
       </div>
       <div class="form-row one">
@@ -2639,13 +2677,15 @@ function defaultData() {
     attendanceMeta: {},        /* { 'date|period|subject': { examId: '', note: '' } } */
     absenceConfig: {           /* 警告閾値設定 */
       credits: {},             /* { subject: 単位数 } */
-      multipliers: [4, 6, 7],  /* 全授業共通 */
+      multipliers: [4, 6, 7],  /* 全授業共通 (任意個数) */
+      guidances: ['','',''],   /* 指導内容（任意個数、multipliers と同じ長さ） */
       messages: [
         '欠席が4×単位数回に達しました。注意してください。',
         '欠席が6×単位数回に達しました。保護者連絡を検討してください。',
         '欠席が7×単位数回に達しました。単位取得が危ぶまれます。'
       ]
-    }
+    },
+    resolvedWarnings: {}       /* { 'subject|seat|level|threshold': true } */
   };
 }
 
@@ -2761,14 +2801,22 @@ function migrate(d) {
   base.attendance = d.attendance || {};
   base.attendanceMeta = d.attendanceMeta || {};
   if (d.absenceConfig && typeof d.absenceConfig === 'object') {
+    const muls = Array.isArray(d.absenceConfig.multipliers) && d.absenceConfig.multipliers.length
+      ? d.absenceConfig.multipliers : [4, 6, 7];
+    const msgs = Array.isArray(d.absenceConfig.messages) ? d.absenceConfig.messages.slice() : [];
+    const gds = Array.isArray(d.absenceConfig.guidances) ? d.absenceConfig.guidances.slice() : [];
+    while (msgs.length < muls.length) msgs.push('');
+    while (gds.length < muls.length) gds.push('');
+    msgs.length = muls.length;
+    gds.length = muls.length;
     base.absenceConfig = {
       credits: d.absenceConfig.credits || {},
-      multipliers: Array.isArray(d.absenceConfig.multipliers) && d.absenceConfig.multipliers.length === 3
-        ? d.absenceConfig.multipliers : [4, 6, 7],
-      messages: Array.isArray(d.absenceConfig.messages) && d.absenceConfig.messages.length === 3
-        ? d.absenceConfig.messages : base.absenceConfig.messages
+      multipliers: muls,
+      guidances: gds,
+      messages: msgs
     };
   }
+  base.resolvedWarnings = d.resolvedWarnings || {};
   ensureDayPeriods(base.config);
   return base;
 }
@@ -5874,11 +5922,20 @@ if (_kbdBtn) _kbdBtn.style.display = 'none';
 /* ========== 出欠席管理 ========== */
 function ensureAbsenceConfig() {
   if (!state.absenceConfig) {
-    state.absenceConfig = { credits: {}, multipliers: [4,6,7],
+    state.absenceConfig = { credits: {}, multipliers: [4,6,7], guidances: ['','',''],
       messages: ['欠席が4×単位数回に達しました。','欠席が6×単位数回に達しました。','欠席が7×単位数回に達しました。'] };
   }
+  const c = state.absenceConfig;
+  if (!Array.isArray(c.multipliers)) c.multipliers = [4,6,7];
+  if (!Array.isArray(c.messages)) c.messages = [];
+  if (!Array.isArray(c.guidances)) c.guidances = [];
+  while (c.messages.length < c.multipliers.length) c.messages.push('');
+  while (c.guidances.length < c.multipliers.length) c.guidances.push('');
+  c.messages.length = c.multipliers.length;
+  c.guidances.length = c.multipliers.length;
   if (!state.seatConfig) state.seatConfig = {};
   if (!state.attendance) state.attendance = {};
+  if (!state.resolvedWarnings) state.resolvedWarnings = {};
 }
 
 /* 授業ごとの欠席累計（保健室含む）を日付で絞って算出 */
@@ -6024,7 +6081,7 @@ function renderRecAttendGrid(date, period, subject) {
     const st = getAttStatus(date, period, subject, n);
     const cls = st === 'absent' ? 'st-absent' : st === 'late' ? 'st-late' : st === 'infirmary' ? 'st-infirmary' : '';
     const label = st === 'absent' ? '欠' : st === 'late' ? '遅' : st === 'infirmary' ? '保' : '';
-    html += `<button type="button" class="att-reg-seat ${cls}" data-seat="${n}">${n}${label?('<br>'+label):''}</button>`;
+    html += `<button type="button" class="att-reg-seat ${cls}" data-seat="${n}"><span class="seat-num">${n}</span><span class="seat-lbl">${label||'&nbsp;'}</span></button>`;
   }
   wrap.innerHTML = html;
   wrap.querySelectorAll('.att-reg-seat').forEach(btn => {
@@ -6043,7 +6100,8 @@ function renderRecAttendGrid(date, period, subject) {
         /* 旧カウント = 新カウント - 1 の想定（この1回で増えた） */
         const warn = checkAbsenceThreshold(subject, newCount, newCount - 1);
         if (warn) {
-          alert(`【警告（レベル${warn.level+1}）】\n${subject} 出席番号${seatNo}: 欠席${newCount}回\n閾値=${warn.threshold}回\n\n${warn.message}`);
+          alert(`【警告（レベル${warn.level+1}）】\n${subject} No.${seatNo}: 欠席${newCount}回\n閾値=${warn.threshold}回\n\n${warn.message}`);
+          try { updateAttendBadge(); } catch(e) {}
         }
       }
     });
@@ -6103,6 +6161,7 @@ function renderAttend() {
     }
     tSel.value = _attendState.term;
   }
+  renderAttendThresh();
   renderAttendGrid();
   renderAttendWarnings();
 }
@@ -6189,7 +6248,7 @@ function renderAttendGrid() {
   });
   let html = '<table class="att-grid"><thead>';
   /* 月行: colspan でグループ化 */
-  const monthRow = ['<th class="att-seat-head" rowspan="4">席番</th>'];
+  const monthRow = ['<th class="att-seat-head" rowspan="4"></th>'];
   monthGroups.forEach(g => {
     monthRow.push(`<th class="att-hd-month" colspan="${g.count}">${g.month}月</th>`);
   });
@@ -6200,12 +6259,13 @@ function renderAttendGrid() {
   slots.forEach(sl => {
     const meta = getAttMeta(sl.date, sl.period, subject);
     const ep = meta.examId ? (state.examPeriods || []).find(x => x.id === meta.examId) : null;
+    const examName = (meta.customExam || (ep && ep.name)) || '';
     const hasNote = !!meta.note;
     const noteCls = hasNote ? ' att-hd-note' : '';
     const dataAttr = `data-d="${sl.date}" data-p="${sl.period}"`;
-    if (ep) {
+    if (examName) {
       /* 考査日: 日/曜日/時限 3段を結合して縦書き考査名 */
-      dayRow.push(`<th class="att-hd-exam att-colhead-tappable${noteCls}" rowspan="3" ${dataAttr}>${escapeHtml(ep.name||'考査')}</th>`);
+      dayRow.push(`<th class="att-hd-exam att-colhead-tappable${noteCls}" rowspan="3" ${dataAttr}>${escapeHtml(examName)}</th>`);
     } else {
       const [y,m,d] = sl.date.split('-').map(x => parseInt(x));
       const dt = new Date(y, m-1, d);
@@ -6247,15 +6307,14 @@ function renderAttendGrid() {
     });
   });
 }
-function renderAttendWarnings() {
-  const subject = _attendState.subject;
-  const wrap = $('#attWarnings');
-  if (!subject || !wrap) { if (wrap) wrap.innerHTML = ''; return; }
+function resolvedKey(subject, seat, lv, th) { return `${subject}|${seat}|${lv}|${th}`; }
+
+function computeWarningItems(subject) {
   ensureAbsenceConfig();
   const credits = (state.absenceConfig.credits || {})[subject];
-  const muls = state.absenceConfig.multipliers || [4,6,7];
+  const muls = state.absenceConfig.multipliers || [];
   const msgs = state.absenceConfig.messages || [];
-  if (!credits) { wrap.innerHTML = '<div class="help">単位数未設定（警告なし）</div>'; return; }
+  if (!credits || !muls.length) return { items: [], thresholds: [] };
   const range = getTermDateRange(_attendState.term || '');
   const until = range.end || null;
   const bySeat = countAbsencesBySeatUntil(subject, until);
@@ -6266,16 +6325,95 @@ function renderAttendWarnings() {
     for (let i = thresholds.length - 1; i >= 0; i--) {
       if (cnt >= thresholds[i]) { lv = i; break; }
     }
-    if (lv >= 0) items.push({ seat: sn, count: cnt, lv });
+    if (lv >= 0) {
+      const th = thresholds[lv];
+      const resolved = !!(state.resolvedWarnings || {})[resolvedKey(subject, sn, lv, th)];
+      items.push({ seat: sn, count: cnt, lv, threshold: th, message: msgs[lv]||'', resolved });
+    }
   });
-  items.sort((a,b) => b.lv - a.lv || b.count - a.count || parseInt(a.seat) - parseInt(b.seat));
+  items.sort((a,b) => (a.resolved - b.resolved) || b.lv - a.lv || b.count - a.count || parseInt(a.seat) - parseInt(b.seat));
+  return { items, thresholds };
+}
+
+function renderAttendWarnings() {
+  const subject = _attendState.subject;
+  const wrap = $('#attWarnings');
+  if (!subject || !wrap) { if (wrap) wrap.innerHTML = ''; return; }
+  ensureAbsenceConfig();
+  const credits = (state.absenceConfig.credits || {})[subject];
+  if (!credits) { wrap.innerHTML = '<div class="help">単位数未設定（警告なし）</div>'; updateAttendBadge(); return; }
+  const { items, thresholds } = computeWarningItems(subject);
   if (!items.length) {
     wrap.innerHTML = `<div class="help">閾値: ${thresholds.join(', ')}回 — 現在該当なし。</div>`;
+    updateAttendBadge();
     return;
   }
-  wrap.innerHTML = items.map(it =>
-    `<div class="att-warn-item att-warn-lv${it.lv+1}"><strong>席番${it.seat}（${it.count}回）</strong>: ${escapeHtml(msgs[it.lv]||'')}</div>`
-  ).join('');
+  const active = items.filter(it => !it.resolved);
+  const resolvedList = items.filter(it => it.resolved);
+  const renderItem = it => {
+    const kk = resolvedKey(subject, it.seat, it.lv, it.threshold);
+    return `<div class="att-warn-item att-warn-lv${it.lv+1}${it.resolved?' resolved':''}">
+      <label>
+        <input type="checkbox" class="att-warn-chk" data-k="${escapeHtml(kk)}" ${it.resolved?'checked':''}>
+        <span><strong>No.${it.seat}（${it.count}回）</strong>: ${escapeHtml(it.message)}</span>
+      </label>
+    </div>`;
+  };
+  let html = active.map(renderItem).join('');
+  if (resolvedList.length) {
+    html += `<div class="att-warn-resolved-head">対応済みの警告 (${resolvedList.length})</div>`;
+    html += resolvedList.map(renderItem).join('');
+  }
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.att-warn-chk').forEach(chk => {
+    chk.addEventListener('change', () => {
+      const k = chk.dataset.k;
+      if (!state.resolvedWarnings) state.resolvedWarnings = {};
+      if (chk.checked) state.resolvedWarnings[k] = true;
+      else delete state.resolvedWarnings[k];
+      save();
+      renderAttendWarnings();
+    });
+  });
+  updateAttendBadge();
+}
+
+/* 閾値表（×N・閾値・指導内容） */
+function renderAttendThresh() {
+  const wrap = $('#attThreshWrap');
+  if (!wrap) return;
+  ensureAbsenceConfig();
+  const subject = _attendState.subject;
+  const cfg = state.absenceConfig;
+  const credits = (cfg.credits || {})[subject];
+  if (!subject) { wrap.innerHTML = ''; return; }
+  if (!credits) {
+    wrap.innerHTML = `<div class="help">「${escapeHtml(subject)}」の単位数が未設定です（設定タブ「出欠席管理」で登録してください）。</div>`;
+    return;
+  }
+  let html = '<table class="att-thresh-grid"><thead><tr><th>×N</th><th>閾値（回）</th><th>指導内容</th></tr></thead><tbody>';
+  cfg.multipliers.forEach((n, i) => {
+    html += `<tr><td>${n}</td><td>${credits * n}</td><td class="att-th-guide">${escapeHtml(cfg.guidances[i]||'')}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+/* バッジ更新: 全授業の未対応警告数を合算 */
+function updateAttendBadge() {
+  ensureAbsenceConfig();
+  const badge = $('#attendBadge');
+  if (!badge) return;
+  const prevSubject = _attendState.subject;
+  let total = 0;
+  getAttendClassSubjects().forEach(subject => {
+    _attendState.subject = subject;
+    const { items } = computeWarningItems(subject);
+    total += items.filter(it => !it.resolved).length;
+  });
+  _attendState.subject = prevSubject;
+  if (total > 0) { badge.style.display = ''; badge.textContent = total; }
+  else { badge.style.display = 'none'; badge.textContent = '0'; }
 }
 
 /* 出席簿 セレクタ・イベント */
@@ -6283,6 +6421,7 @@ function renderAttendWarnings() {
   const sSel = $('#attSubjectSel');
   if (sSel) sSel.addEventListener('change', () => {
     _attendState.subject = sSel.value;
+    renderAttendThresh();
     renderAttendGrid();
     renderAttendWarnings();
   });
@@ -6306,7 +6445,7 @@ function getAttMeta(date, period, subject) {
 function setAttMeta(date, period, subject, meta) {
   if (!state.attendanceMeta) state.attendanceMeta = {};
   const k = attMetaKey(date, period, subject);
-  if (!meta || (!meta.examId && !meta.note)) delete state.attendanceMeta[k];
+  if (!meta || (!meta.examId && !meta.customExam && !meta.note)) delete state.attendanceMeta[k];
   else state.attendanceMeta[k] = meta;
 }
 
@@ -6328,9 +6467,18 @@ function openAttAddModal({ date, period, subject }) {
   const examOpts = (state.examPeriods || []).filter(ep => !term || ep.term === term);
   const sel = $('#attAddExamId');
   sel.innerHTML = '<option value="">（通常の授業日）</option>' +
-    examOpts.map(ep => `<option value="${escapeHtml(ep.id)}">${escapeHtml(ep.name||'考査')}</option>`).join('');
+    examOpts.map(ep => `<option value="${escapeHtml(ep.id)}">${escapeHtml(ep.name||'考査')}</option>`).join('') +
+    '<option value="__custom__">その他（手入力）</option>';
   const meta = getAttMeta(d, p, subj);
-  sel.value = meta.examId || '';
+  if (meta.customExam) {
+    sel.value = '__custom__';
+    $('#attAddCustomRow').style.display = '';
+    $('#attAddCustomExam').value = meta.customExam;
+  } else {
+    sel.value = meta.examId || '';
+    $('#attAddCustomRow').style.display = 'none';
+    $('#attAddCustomExam').value = '';
+  }
   $('#attAddNote').value = meta.note || '';
   renderAttAddGrid();
   $('#attAddModalBg').classList.add('show');
@@ -6348,7 +6496,7 @@ function renderAttAddGrid() {
     const st = getAttStatus(d, p, subject, n);
     const cls = st === 'absent' ? 'st-absent' : st === 'late' ? 'st-late' : st === 'infirmary' ? 'st-infirmary' : '';
     const label = st === 'absent' ? '欠' : st === 'late' ? '遅' : st === 'infirmary' ? '保' : '';
-    html += `<button type="button" class="att-reg-seat ${cls}" data-seat="${n}">${n}${label?('<br>'+label):''}</button>`;
+    html += `<button type="button" class="att-reg-seat ${cls}" data-seat="${n}"><span class="seat-num">${n}</span><span class="seat-lbl">${label||'&nbsp;'}</span></button>`;
   }
   wrap.innerHTML = html;
   wrap.querySelectorAll('.att-reg-seat').forEach(btn => {
@@ -6363,7 +6511,7 @@ function renderAttAddGrid() {
         const bySeat = countAbsencesForSubjectBySeat(subject);
         const nc = bySeat[seatNo] || 0;
         const warn = checkAbsenceThreshold(subject, nc, nc - 1);
-        if (warn) alert(`【警告（レベル${warn.level+1}）】\n${subject} 出席番号${seatNo}: 欠席${nc}回\n閾値=${warn.threshold}回\n\n${warn.message}`);
+        if (warn) { alert(`【警告（レベル${warn.level+1}）】\n${subject} No.${seatNo}: 欠席${nc}回\n閾値=${warn.threshold}回\n\n${warn.message}`); try { updateAttendBadge(); } catch(e) {} }
       }
     });
   });
@@ -6373,14 +6521,24 @@ function renderAttAddGrid() {
   const bg = $('#attAddModalBg'); if (bg) bg.addEventListener('click', e => { if (e.target.id === 'attAddModalBg') closeAttAddModal(); });
   const d = $('#attAddDate'); if (d) d.addEventListener('change', renderAttAddGrid);
   const p = $('#attAddPeriod'); if (p) p.addEventListener('change', renderAttAddGrid);
+  /* セレクタ切替で手入力欄の表示切替 */
+  const examSel = $('#attAddExamId');
+  if (examSel) examSel.addEventListener('change', () => {
+    $('#attAddCustomRow').style.display = (examSel.value === '__custom__') ? '' : 'none';
+  });
   const save_ = $('#attAddSave'); if (save_) save_.addEventListener('click', () => {
     const { subject } = _attAddCtx;
     const date = $('#attAddDate').value;
     const period = parseInt($('#attAddPeriod').value) || 0;
     if (!date || !period) { toast('日付・時限を入力してください'); return; }
-    const examId = $('#attAddExamId').value || '';
+    let examId = $('#attAddExamId').value || '';
+    let customExam = '';
+    if (examId === '__custom__') {
+      customExam = ($('#attAddCustomExam').value || '').trim();
+      examId = '';
+    }
     const note = $('#attAddNote').value.trim();
-    setAttMeta(date, period, subject, { examId, note });
+    setAttMeta(date, period, subject, { examId, customExam, note });
     /* 該当日付に done レコードがない場合は暗黙に作る（出席簿の列として現れるようにする） */
     const exists = (state.records || []).some(r => r.date === date && r.period === period && r.subject === subject);
     if (!exists) {
@@ -6422,11 +6580,12 @@ function renderAttAddGrid() {
 function openAttInfoModal(date, period, subject) {
   const meta = getAttMeta(date, period, subject);
   const ep = meta.examId ? (state.examPeriods || []).find(x => x.id === meta.examId) : null;
+  const examName = meta.customExam || (ep && ep.name) || '';
   $('#attInfoTitle').textContent = `${date} ${period}限 ${subject}`;
   let html = `<div><strong>日付:</strong> ${escapeHtml(date)}（${period}限）</div>`;
-  if (ep) html += `<div style="margin-top:6px;"><strong>考査:</strong> ${escapeHtml(ep.name||'考査')}</div>`;
+  if (examName) html += `<div style="margin-top:6px;"><strong>考査:</strong> ${escapeHtml(examName)}${meta.customExam?'（手入力）':''}</div>`;
   if (meta.note) html += `<div style="margin-top:6px;"><strong>備考:</strong><br>${escapeHtml(meta.note).replace(/\n/g,'<br>')}</div>`;
-  if (!ep && !meta.note) html += `<div style="color:var(--muted); margin-top:6px;">備考や考査情報は登録されていません。</div>`;
+  if (!examName && !meta.note) html += `<div style="color:var(--muted); margin-top:6px;">備考や考査情報は登録されていません。</div>`;
   $('#attInfoBody').innerHTML = html;
   $('#attInfoModalBg').classList.add('show');
   const editBtn = $('#attInfoEdit');
@@ -6459,18 +6618,57 @@ function countAbsencesForSubjectInRangeBySeat(subject, startIso, endIso) {
   return out;
 }
 
+/* 指定授業の、期間内の実施時数（done=true のレコード数）。考査も含まれる */
+function countLessonsForSubjectInRange(subject, startIso, endIso) {
+  let n = 0;
+  (state.records || []).forEach(r => {
+    if (!r.done || r.subject !== subject || !r.date || !r.period) return;
+    if (startIso && r.date < startIso) return;
+    if (endIso && r.date > endIso) return;
+    n++;
+  });
+  return n;
+}
+
 function exportAttendanceCSV() {
   ensureAbsenceConfig();
   const terms = getConfiguredTerms();
+  const exams = (state.examPeriods || []).slice()
+    .sort((a,b) => (a.end||'').localeCompare(b.end||''));
   const subjects = getAttendClassSubjects().filter(s => {
     const cfg = (state.seatConfig || {})[s];
     return cfg && cfg.start && cfg.end;
   });
   if (!subjects.length) { toast('出席番号が設定された授業がありません'); return; }
   let csv = '﻿'; /* BOM */
+  const csvEsc = s => {
+    const v = String(s == null ? '' : s);
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  };
   const termHeaders = terms.map(t => `${t}欠席数`).join(',');
   subjects.forEach(subject => {
-    csv += `授業: ${subject}\n`;
+    csv += `授業: ${csvEsc(subject)}\n`;
+    /* 実施時数（考査を含む）: 考査期間ごと */
+    if (exams.length) {
+      csv += '考査期間別 実施時数,' + exams.map(ep => csvEsc(ep.name||'考査')).join(',') + ',累計\n';
+      const row = [''];
+      exams.forEach(ep => row.push(countLessonsForSubjectInRange(subject, ep.start, ep.end)));
+      row.push(countLessonsForSubjectInRange(subject, null, null));
+      csv += row.join(',') + '\n';
+    }
+    /* 実施時数: 学期ごと */
+    if (terms.length) {
+      csv += '学期別 実施時数,' + terms.map(t => csvEsc(t)).join(',') + ',累計\n';
+      const row = [''];
+      terms.forEach(t => {
+        const r = getTermDateRange(t);
+        row.push(countLessonsForSubjectInRange(subject, r.start, r.end));
+      });
+      row.push(countLessonsForSubjectInRange(subject, null, null));
+      csv += row.join(',') + '\n';
+    }
+    csv += '\n';
+    /* 欠席数 */
     csv += `出席番号,${termHeaders}${termHeaders?',':''}累計欠席\n`;
     const cfg = state.seatConfig[subject];
     const cumulative = countAbsencesForSubjectBySeat(subject);
@@ -6497,19 +6695,47 @@ function exportAttendanceCSV() {
 }
 
 /* ========== 設定: 出欠席管理（座席範囲＋単位数＋警告） ========== */
-function renderAbsenceSettings() {
+function renderAbsenceLevels() {
   ensureAbsenceConfig();
   const cfg = state.absenceConfig;
-  const muls = cfg.multipliers || [4,6,7];
-  const msgs = cfg.messages || [];
-  ['absMul1','absMul2','absMul3'].forEach((id, i) => {
-    const el = $('#' + id); if (el) el.value = muls[i] || '';
+  const tbl = $('#absLevelsGrid');
+  if (!tbl) return;
+  let html = '<thead><tr><th style="width:80px;">×N</th><th>指導内容</th><th>警告メッセージ</th><th style="width:60px;">削除</th></tr></thead><tbody>';
+  cfg.multipliers.forEach((m, i) => {
+    html += `<tr data-i="${i}">
+      <td><input type="number" min="1" class="abs-lv-mul" data-i="${i}" value="${m}"></td>
+      <td><input type="text" class="abs-lv-guide" data-i="${i}" value="${escapeHtml(cfg.guidances[i]||'')}" placeholder="例: 担任と面談"></td>
+      <td><input type="text" class="abs-lv-msg" data-i="${i}" value="${escapeHtml(cfg.messages[i]||'')}"></td>
+      <td style="text-align:center;"><button type="button" class="abs-lv-del" data-i="${i}">×</button></td>
+    </tr>`;
   });
-  ['absMsg1','absMsg2','absMsg3'].forEach((id, i) => {
-    const el = $('#' + id); if (el) el.value = msgs[i] || '';
+  if (!cfg.multipliers.length) {
+    html += '<tr><td colspan="4" style="color:var(--muted); font-style:italic;">レベル未登録。「+ レベルを追加」で作成してください。</td></tr>';
+  }
+  html += '</tbody>';
+  tbl.innerHTML = html;
+  const mark = () => { const ind = $('#absDirtyInd'); if (ind) ind.style.display = 'inline-block'; };
+  tbl.querySelectorAll('.abs-lv-mul, .abs-lv-guide, .abs-lv-msg').forEach(inp => {
+    inp.addEventListener('input', mark);
   });
+  tbl.querySelectorAll('.abs-lv-del').forEach(b => b.addEventListener('click', () => {
+    const i = parseInt(b.dataset.i);
+    const cfg2 = state.absenceConfig;
+    cfg2.multipliers.splice(i, 1);
+    cfg2.guidances.splice(i, 1);
+    cfg2.messages.splice(i, 1);
+    renderAbsenceLevels();
+    mark();
+  }));
+}
+
+function renderAbsenceSettings() {
+  ensureAbsenceConfig();
+  renderAbsenceLevels();
   const tbl = $('#absGrid');
   if (!tbl) return;
+  const cfg = state.absenceConfig;
+  const muls = cfg.multipliers || [];
   const subjects = gatherAllSubjects();
   const seats = state.seatConfig || {};
   const credits = cfg.credits || {};
@@ -6534,12 +6760,6 @@ function renderAbsenceSettings() {
   tbl.innerHTML = html;
   tbl.querySelectorAll('.abs-start, .abs-end, .abs-credit').forEach(inp => {
     inp.addEventListener('input', () => {
-      const sInd = $('#absDirtyInd'); if (sInd) sInd.style.display = 'inline-block';
-    });
-  });
-  ['absMul1','absMul2','absMul3','absMsg1','absMsg2','absMsg3'].forEach(id => {
-    const el = $('#' + id);
-    if (el) el.addEventListener('input', () => {
       const sInd = $('#absDirtyInd'); if (sInd) sInd.style.display = 'inline-block';
     });
   });
@@ -6569,13 +6789,32 @@ function saveAbsenceSettings() {
   Object.entries(seats).forEach(([s, v]) => {
     if (v.start && v.end && v.end >= v.start) cleanSeats[s] = v;
   });
-  const muls = [1,2,3].map(i => parseInt($('#absMul'+i).value) || 0);
-  const msgs = [1,2,3].map(i => ($('#absMsg'+i).value || '').trim());
+  /* レベル表から値を収集 */
+  const muls = [], msgs = [], gds = [];
+  $$('#absLevelsGrid tbody tr').forEach(tr => {
+    const i = tr.dataset.i;
+    if (i == null) return;
+    const mulInp = tr.querySelector('.abs-lv-mul');
+    const msgInp = tr.querySelector('.abs-lv-msg');
+    const gdInp = tr.querySelector('.abs-lv-guide');
+    if (!mulInp) return;
+    const m = parseInt(mulInp.value) || 0;
+    if (m <= 0) return;
+    muls.push(m);
+    msgs.push((msgInp && msgInp.value || '').trim());
+    gds.push((gdInp && gdInp.value || '').trim());
+  });
+  /* ×N 昇順に並び替え（指導/メッセージも追従） */
+  const idx = muls.map((_, i) => i).sort((a,b) => muls[a] - muls[b]);
+  const sMuls = idx.map(i => muls[i]);
+  const sMsgs = idx.map(i => msgs[i]);
+  const sGds = idx.map(i => gds[i]);
   state.seatConfig = cleanSeats;
   state.absenceConfig = {
     credits,
-    multipliers: muls.every(x => x > 0) ? muls : [4,6,7],
-    messages: msgs
+    multipliers: sMuls.length ? sMuls : [4,6,7],
+    messages: sMsgs.length ? sMsgs : ['','',''],
+    guidances: sGds.length ? sGds : ['','','']
   };
   save();
   const sInd = $('#absDirtyInd'); if (sInd) sInd.style.display = 'none';
@@ -6586,6 +6825,16 @@ function saveAbsenceSettings() {
   const b = $('#absSaveBtn'); if (b) b.addEventListener('click', saveAbsenceSettings);
   const c = $('#absCancelBtn'); if (c) c.addEventListener('click', () => { renderAbsenceSettings(); toast('変更を破棄しました'); });
   const r = $('#absRefresh'); if (r) r.addEventListener('click', () => { renderAbsenceSettings(); toast('一覧を更新しました'); });
+  const a = $('#absLevelAdd'); if (a) a.addEventListener('click', () => {
+    ensureAbsenceConfig();
+    const cfg = state.absenceConfig;
+    const nextMul = cfg.multipliers.length ? (Math.max.apply(null, cfg.multipliers) + 1) : 4;
+    cfg.multipliers.push(nextMul);
+    cfg.guidances.push('');
+    cfg.messages.push('');
+    renderAbsenceLevels();
+    const ind = $('#absDirtyInd'); if (ind) ind.style.display = 'inline-block';
+  });
 })();
 
 /* renderSettings に出欠席管理を組み込む */
@@ -6683,6 +6932,7 @@ renderSettings();
 renderWeek();
 updateHeaderStatus();
 updateTodoBadge();
+try { updateAttendBadge(); } catch(e) {}
 
 /* 保存状態インジケータを30秒ごとに更新（経過時間を再計算） */
 setInterval(updateHeaderStatus, 30 * 1000);
