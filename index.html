@@ -111,53 +111,53 @@
     -webkit-touch-callout: default;
   }
   header {
-    background: var(--accent);
-    color: #fff;
+    background: #eef1f5;
+    color: #1f1f1f;
     padding: 14px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    border-bottom: 1px solid #d4d9e0;
     gap: 14px;
     font-size: 13px;
     line-height: 1.2;
     min-height: 54px;
   }
-  header h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.04em; }
+  header h1 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: 0.04em; color: #1f1f1f; }
   header .h-meta {
     display: flex; gap: 12px; align-items: center;
-    font-size: 12px; opacity: 0.95;
+    font-size: 12px;
   }
   header .h-meta .h-todo {
-    background: rgba(255,255,255,0.18);
+    background: rgba(0,0,0,0.06);
     padding: 2px 9px; border-radius: 10px;
-    font-weight: 600;
+    font-weight: 600; color: #1f1f1f;
   }
   header .h-meta .h-todo.zero { opacity: 0.55; }
   header .h-meta .h-savestat {
     padding: 2px 9px; border-radius: 10px;
     font-weight: 600; font-size: 11px;
-    background: rgba(255,255,255,0.18);
-    white-space: nowrap;
+    background: rgba(0,0,0,0.08);
+    white-space: nowrap; color: #333;
   }
-  header .h-meta .h-savestat.fresh { background: rgba(46,204,113,0.85); color: #fff; }   /* 〜10分以内 */
-  header .h-meta .h-savestat.stale { background: rgba(255,255,255,0.18); color: #fff; }  /* 〜2時間以内 */
-  header .h-meta .h-savestat.old   { background: rgba(255,160,0,0.95); color: #fff; }    /* 〜6時間 */
-  header .h-meta .h-savestat.dirty { background: rgba(231,76,60,0.95); color: #fff; }    /* 未保存変更あり、または6時間超 */
+  header .h-meta .h-savestat.fresh { background: #2ecc71; color: #fff; }
+  header .h-meta .h-savestat.stale { background: rgba(0,0,0,0.08); color: #555; }
+  header .h-meta .h-savestat.old   { background: #ffa000; color: #fff; }
+  header .h-meta .h-savestat.dirty { background: #e74c3c; color: #fff; }
   header .h-meta .h-syncbtn {
-    background: rgba(255,255,255,0.18);
-    border: 1px solid rgba(255,255,255,0.35);
-    color: #fff; padding: 3px 11px;
+    background: #fff;
+    border: 1px solid #c4c9d0;
+    color: #1f1f1f; padding: 3px 11px;
     border-radius: 6px; font-size: 12px;
     font-weight: 600; cursor: pointer;
     font-family: inherit;
   }
-  header .h-meta .h-syncbtn:hover { background: rgba(255,255,255,0.30); }
+  header .h-meta .h-syncbtn:hover { background: #f5f7fa; }
   header .h-meta .h-syncbtn.primary {
-    background: #fff; color: var(--accent);
-    border-color: #fff;
+    background: #1f1f1f; color: #fff;
+    border-color: #1f1f1f;
   }
-  header .h-meta .h-syncbtn.primary:hover { background: #f5f5f5; }
+  header .h-meta .h-syncbtn.primary:hover { background: #333; }
   nav.tabs {
     display: flex; background: var(--panel);
     border-bottom: 1px solid var(--line);
@@ -1670,7 +1670,8 @@
   .year-bar select { font-size: 13px; padding: 5px 9px; min-width: 130px; }
   .year-bar .year-label { font-weight: 700; color: var(--accent); font-size: 13px; }
   header .header-year {
-    background: rgba(255,255,255,0.18);
+    background: rgba(0,0,0,0.06);
+    color: #333;
     padding: 2px 9px; border-radius: 10px;
     font-size: 11px; font-weight: 600;
     margin-left: 8px;
@@ -6424,19 +6425,34 @@ function renderAttendThresh() {
   wrap.innerHTML = html;
 }
 
-/* バッジ更新: 全授業の未対応警告数を合算 */
+/* バッジ更新: 全授業・全学期にわたる未対応警告数 */
 function updateAttendBadge() {
   ensureAbsenceConfig();
   const badge = $('#attendBadge');
   if (!badge) return;
-  const prevSubject = _attendState.subject;
-  let total = 0;
+  const cfg = state.absenceConfig;
+  const muls = cfg.multipliers || [];
+  if (!muls.length) { badge.style.display = 'none'; return; }
+  const resolved = state.resolvedWarnings || {};
+  const seen = new Set();
   getAttendClassSubjects().forEach(subject => {
-    _attendState.subject = subject;
-    const { items } = computeWarningItems(subject);
-    total += items.filter(it => !it.resolved).length;
+    const credits = (cfg.credits || {})[subject];
+    if (!credits) return;
+    const thresholds = muls.map(x => credits * x);
+    /* 全期間を対象に席番別累計で判定 */
+    const bySeat = countAbsencesForSubjectBySeat(subject);
+    Object.entries(bySeat).forEach(([sn, cnt]) => {
+      let lv = -1;
+      for (let i = thresholds.length - 1; i >= 0; i--) {
+        if (cnt >= thresholds[i]) { lv = i; break; }
+      }
+      if (lv < 0) return;
+      const th = thresholds[lv];
+      const k = resolvedKey(subject, sn, lv, th);
+      if (!resolved[k]) seen.add(k);
+    });
   });
-  _attendState.subject = prevSubject;
+  const total = seen.size;
   if (total > 0) { badge.style.display = ''; badge.textContent = total; }
   else { badge.style.display = 'none'; badge.textContent = '0'; }
 }
