@@ -135,8 +135,9 @@
   }
   header .h-meta .h-todo.zero { opacity: 0.55; }
   header .h-meta .h-savestat {
-    padding: 2px 9px; border-radius: 10px;
+    padding: 1px 9px; border-radius: 10px;
     font-weight: 600; font-size: 11px;
+    line-height: 1.3;
     background: rgba(0,0,0,0.08);
     white-space: nowrap; color: #333;
   }
@@ -147,10 +148,12 @@
   header .h-meta .h-syncbtn {
     background: #fff;
     border: 1px solid #c4c9d0;
-    color: #1f1f1f; padding: 3px 11px;
+    color: #1f1f1f; padding: 1px 11px;
     border-radius: 6px; font-size: 12px;
+    line-height: 1.5;
     font-weight: 600; cursor: pointer;
     font-family: inherit;
+    min-height: 22px;
   }
   header .h-meta .h-syncbtn:hover { background: #f5f7fa; }
   header .h-meta .h-syncbtn.primary {
@@ -201,8 +204,6 @@
     border-left: 4px solid var(--accent);
     padding-left: 10px;
   }
-  .panel.pat-A h2 { color: var(--pat-a); border-left-color: var(--pat-a); }
-  .panel.pat-B h2 { color: var(--pat-b); border-left-color: var(--pat-b); }
 
   button.btn {
     background: var(--accent);
@@ -2437,12 +2438,12 @@
       <button type="button" id="attAddClose">閉じる ✕</button>
     </div>
     <div class="rec-modal-body">
-      <div class="form-row">
-        <div class="field">
+      <div class="form-row" style="display:flex; grid-template-columns:none; gap:12px; align-items:flex-end;">
+        <div class="field" style="flex:0 0 auto;">
           <label>日付</label>
           <input type="date" id="attAddDate" style="width:170px; max-width:170px;">
         </div>
-        <div class="field">
+        <div class="field" style="flex:0 0 auto;">
           <label>時限</label>
           <input type="number" min="1" max="10" id="attAddPeriod" style="width:80px;">
         </div>
@@ -2492,8 +2493,16 @@
     </div>
     <div class="rec-modal-body">
       <div id="attInfoBody" style="font-size:14px; line-height:1.6;"></div>
+      <div class="att-reg-legend" style="margin-top:10px;">
+        <span class="lg"><span class="sw" style="background:#fff;"></span>出席</span>
+        <span class="lg"><span class="sw" style="background:#ffebee; border-color:#ef9a9a;"></span>欠席</span>
+        <span class="lg"><span class="sw" style="background:#fff3e0; border-color:#ffb74d;"></span>遅刻</span>
+        <span class="lg"><span class="sw" style="background:#f3e5f5; border-color:#ce93d8;"></span>保健室</span>
+        <span style="color:var(--muted);">タップで循環</span>
+      </div>
+      <div id="attInfoGrid" class="att-reg-grid" style="margin-top:8px;"></div>
       <div class="btn-row" style="margin-top:10px;">
-        <button class="btn secondary" id="attInfoEdit">この日の登録を編集</button>
+        <button class="btn secondary" id="attInfoEdit">この日の登録を編集（考査名・備考）</button>
       </div>
     </div>
   </div>
@@ -6669,14 +6678,52 @@ function openAttInfoModal(date, period, subject) {
   let html = `<div><strong>日付:</strong> ${escapeHtml(date)}（${period}限）</div>`;
   if (examName) html += `<div style="margin-top:6px;"><strong>考査:</strong> ${escapeHtml(examName)}${meta.customExam?'（手入力）':''}</div>`;
   if (meta.note) html += `<div style="margin-top:6px;"><strong>備考:</strong><br>${escapeHtml(meta.note).replace(/\n/g,'<br>')}</div>`;
-  if (!examName && !meta.note) html += `<div style="color:var(--muted); margin-top:6px;">備考や考査情報は登録されていません。</div>`;
+  if (!examName && !meta.note) html += `<div style="color:var(--muted); margin-top:6px;">備考・考査名は未登録。下のボタンから編集できます。</div>`;
   $('#attInfoBody').innerHTML = html;
+  renderAttInfoGrid(date, period, subject);
   $('#attInfoModalBg').classList.add('show');
   const editBtn = $('#attInfoEdit');
   editBtn.onclick = () => {
     $('#attInfoModalBg').classList.remove('show');
     openAttAddModal({ date, period, subject });
   };
+}
+
+/* 情報ポップアップ内の座席グリッド（タップで出欠登録） */
+function renderAttInfoGrid(date, period, subject) {
+  const wrap = $('#attInfoGrid');
+  if (!wrap) return;
+  const cfg = (state.seatConfig || {})[subject];
+  if (!cfg || !cfg.start || !cfg.end) {
+    wrap.innerHTML = '<div class="att-reg-nocls">この授業の出席番号範囲が未設定です。</div>';
+    return;
+  }
+  let html = '';
+  for (let n = cfg.start; n <= cfg.end; n++) {
+    const st = getAttStatus(date, period, subject, n);
+    const cls = st === 'absent' ? 'st-absent' : st === 'late' ? 'st-late' : st === 'infirmary' ? 'st-infirmary' : '';
+    const label = st === 'absent' ? '欠' : st === 'late' ? '遅' : st === 'infirmary' ? '保' : '';
+    html += `<button type="button" class="att-reg-seat ${cls}" data-seat="${n}"><span class="seat-num">${n}</span><span class="seat-lbl">${label||'&nbsp;'}</span></button>`;
+  }
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.att-reg-seat').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const seatNo = parseInt(btn.dataset.seat);
+      const cur = getAttStatus(date, period, subject, seatNo);
+      const next = cycleAttendanceStatus(cur);
+      setAttStatus(date, period, subject, seatNo, next);
+      save();
+      renderAttInfoGrid(date, period, subject);
+      /* 一覧側も更新 */
+      try { renderAttendGrid(); renderAttendWarnings(); } catch(e) {}
+      if (next === 'absent' || next === 'infirmary') {
+        const bySeat = countAbsencesForSubjectBySeat(subject);
+        const nc = bySeat[seatNo] || 0;
+        const warn = checkAbsenceThreshold(subject, nc, nc - 1);
+        if (warn) { alert(`【警告（レベル${warn.level+1}）】\n${subject} No.${seatNo}: 欠席${nc}回\n閾値=${warn.threshold}回\n\n${warn.message}`); try { updateAttendBadge(); } catch(e) {} }
+      }
+    });
+  });
 }
 (function bindAttInfo() {
   const c = $('#attInfoClose'); if (c) c.addEventListener('click', () => $('#attInfoModalBg').classList.remove('show'));
